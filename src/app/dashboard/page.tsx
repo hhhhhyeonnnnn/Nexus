@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Folder, Sparkles } from "lucide-react";
+import { CheckSquare, Folder, Sparkles } from "lucide-react";
 import { Card, CardTitle } from "@/components/ui/card";
 import { StatusChip } from "@/components/common/status-chip";
 import { ProjectStatusChip } from "@/features/projects/components/project-status-chip";
@@ -9,13 +9,16 @@ import {
   getDashboardProjectSummaries,
   getCurrentUserOrganization,
 } from "@/features/projects/actions";
+import { getDashboardTaskSummaries } from "@/features/tasks/actions";
+import { TaskItem } from "@/features/tasks/components/task-item";
 
 export const metadata: Metadata = { title: "대시보드" };
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [summaries, membership] = await Promise.all([
+  const [projectSummaries, taskSummaries, membership] = await Promise.all([
     getDashboardProjectSummaries(),
+    getDashboardTaskSummaries(),
     getCurrentUserOrganization(),
   ]);
 
@@ -39,7 +42,7 @@ export default async function DashboardPage() {
         <Card>
           <h2 className="text-xs text-muted-foreground">진행 중 프로젝트</h2>
           <p className="mt-2 text-2xl font-bold text-foreground">
-            {summaries.inProgressCount}
+            {projectSummaries.inProgressCount}
             <span className="text-sm font-normal text-muted-foreground ml-1">개</span>
           </p>
           <p className="mt-1 text-xs text-primary hover:underline">
@@ -49,14 +52,24 @@ export default async function DashboardPage() {
 
         <Card>
           <h2 className="text-xs text-muted-foreground">3일 이내 마감</h2>
-          <p className="mt-2 text-2xl" aria-label="데이터 미연결">—</p>
-          <p className="mt-1 text-xs text-muted-foreground">업무 도메인 연결 준비 중</p>
+          <p className="mt-2 text-2xl font-bold text-foreground">
+            {taskSummaries.dueSoonCount}
+            <span className="text-sm font-normal text-muted-foreground ml-1">개</span>
+          </p>
+          <p className="mt-1 text-xs text-primary hover:underline">
+            <Link href="/tasks">업무 목록 보기 →</Link>
+          </p>
         </Card>
 
         <Card>
           <h2 className="text-xs text-muted-foreground">담당자 없는 업무</h2>
-          <p className="mt-2 text-2xl" aria-label="데이터 미연결">—</p>
-          <p className="mt-1 text-xs text-muted-foreground">업무 도메인 연결 준비 중</p>
+          <p className="mt-2 text-2xl font-bold text-foreground">
+            {taskSummaries.unassignedCount}
+            <span className="text-sm font-normal text-muted-foreground ml-1">개</span>
+          </p>
+          <p className="mt-1 text-xs text-primary hover:underline">
+            <Link href="/tasks">업무 배정하기 →</Link>
+          </p>
         </Card>
 
         <Card>
@@ -89,7 +102,7 @@ export default async function DashboardPage() {
               </Link>
             </div>
 
-            {summaries.recentProjects.length === 0 ? (
+            {projectSummaries.recentProjects.length === 0 ? (
               <div className="flex min-h-36 flex-col items-center justify-center gap-2 text-center py-6">
                 <Folder className="size-8 text-muted-foreground/50" />
                 <p className="text-sm text-muted-foreground">학생회의 새로운 프로젝트를 기다리고 있어요.</p>
@@ -97,7 +110,7 @@ export default async function DashboardPage() {
               </div>
             ) : (
               <div className="divide-y divide-border/60">
-                {summaries.recentProjects.map((project) => (
+                {projectSummaries.recentProjects.map((project) => (
                   <Link
                     key={project.id}
                     href={`/projects/${project.id}`}
@@ -118,13 +131,28 @@ export default async function DashboardPage() {
             )}
           </Card>
 
-          {/* Tasks Placeholder */}
+          {/* Urgent Tasks Section */}
           <Card>
-            <CardTitle>지금 챙겨야 할 일</CardTitle>
-            <div className="flex min-h-36 flex-col items-center justify-center gap-2 text-center">
-              <p className="text-muted-foreground">업무를 함께 챙길 준비를 하고 있어요.</p>
-              <p className="text-xs text-muted-foreground">담당자와 마감일을 한눈에 확인할 수 있어요.</p>
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <CardTitle>지금 챙겨야 할 일</CardTitle>
+              <Link href="/tasks" className="text-xs text-primary hover:underline">
+                전체 업무 보기 →
+              </Link>
             </div>
+
+            {taskSummaries.urgentTasks.length === 0 ? (
+              <div className="flex min-h-36 flex-col items-center justify-center gap-2 text-center py-6">
+                <CheckSquare className="size-8 text-muted-foreground/50" />
+                <p className="text-sm text-muted-foreground">지금 당장 마감 임박한 업무가 없습니다.</p>
+                <p className="text-xs text-muted-foreground">새로운 업무를 등록하여 협업을 진행해 보세요.</p>
+              </div>
+            ) : (
+              <div className="mt-3 flex flex-col gap-2">
+                {taskSummaries.urgentTasks.map((task) => (
+                  <TaskItem key={task.id} task={task} />
+                ))}
+              </div>
+            )}
           </Card>
         </div>
 

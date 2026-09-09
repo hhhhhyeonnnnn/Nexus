@@ -16,7 +16,6 @@ import { StatusChip } from "@/components/common/status-chip";
 import { cn } from "@/lib/utils";
 
 const upcomingNavigation = [
-  { label: "업무 관리", icon: ListChecks },
   { label: "캘린더", icon: CalendarDays },
   { label: "문서", icon: FileText },
   { label: "구성원·업체", icon: Users },
@@ -28,6 +27,7 @@ export function Sidebar() {
 
   const isDashboard = pathname === "/dashboard";
   const isProjects = pathname.startsWith("/projects");
+  const isTasks = pathname.startsWith("/tasks");
 
   return (
     <div className="flex min-h-full flex-col gap-6 bg-sidebar px-4 pt-6 pb-5">
@@ -78,6 +78,19 @@ export function Sidebar() {
           프로젝트
         </Link>
 
+        <Link
+          href="/tasks"
+          className={cn(
+            "flex h-9 items-center gap-3 rounded-md px-2 font-medium transition-colors text-sm",
+            isTasks
+              ? "bg-accent text-accent-foreground font-semibold"
+              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+          )}
+        >
+          <ListChecks size={18} aria-hidden="true" />
+          업무 관리
+        </Link>
+
         {upcomingNavigation.map(({ label, icon: Icon }) => (
           <button
             key={label}
@@ -96,7 +109,10 @@ export function Sidebar() {
       <div className="space-y-3 text-xs text-muted-foreground">
         <p className="font-medium">바로가기</p>
         <Link href="/projects" className="block px-2 py-1 hover:underline text-foreground">
-          전체 프로젝트 보기 →
+          프로젝트 관리 →
+        </Link>
+        <Link href="/tasks" className="block px-2 py-1 hover:underline text-foreground">
+          전체 업무 관리 →
         </Link>
       </div>
 
