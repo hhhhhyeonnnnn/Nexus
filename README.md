@@ -37,6 +37,20 @@ Nexus는 현재 핵심 온보딩 및 업무 실행 체계가 구축되어 실제
    - 학생회 관리자(`ADMIN`+)의 구성원 권한 변경 및 내보내기 관리
    - 신규 팀원 가입 신청 대기 목록 확인 및 원클릭 **가입 승인 / 반려** 처리
    - 사이드바 내 **'구성원'**과 **'제휴·업체'** 메뉴 분리
+7. **캘린더 (`/calendar`)**
+   - 학생회 행사(`events`), 프로젝트 기간(`projects`), 마감일이 도래하는 업무(`tasks`)를 월간 캘린더 그리드에 통합 시각화
+   - 오늘 이동 및 전/다음 달 네비게이션, 일자별 상세 일정(행사/프로젝트/마감 업무) 패널
+   - 새 학생회 행사 등록 모달 (제목, 시작/종료일시, 장소, 설명, 관련 프로젝트) 및 삭제
+8. **제휴·협력 업체 관리 (`/vendors`)**
+   - 인쇄·홍보, 행사·축제, 케이터링·푸드, 굿즈·기념품, 제휴·후원 등 카테고리별 제휴 업체 목록
+   - 업체명, 담당자, 연락처(클릭 시 통화 및 번호 복사), 별점 만족도(1~5점), 제휴 혜택 메모
+   - 업체별 누적 거래 집행액 및 거래 건수 자동 연동
+   - 카테고리 필터 탭, 실시간 검색, 업체 추가/수정/삭제
+9. **회계 장부 및 예산 관리 (`/finance`)**
+   - 학생회비, 사업비, 프로젝트별 지출 내역 및 영수증 증빙 관리
+   - 요약 통계 KPI: 현재 잔액(총수입 - 총지출), 총 수입, 총 지출, 책정 예산 대비 집행률 프로그레스 바
+   - 수입(INCOME) / 지출(EXPENSE) 거래 등록 모달 (금액, 거래일자, 카테고리, 관련 프로젝트, 거래처, 영수증 링크)
+   - 구분별(전체/지출/수입)·카테고리별 필터링, 실시간 검색, 거래 내역 수정/삭제
 
 ---
 
@@ -61,7 +75,7 @@ npm run dev
 npm run lint          # ESLint 린트 검사
 npm run typecheck     # TypeScript strict 타입 검사
 npm run test:config   # Supabase 설정 안전성 검사
-npm run test:db       # PGlite 메모리 PostgreSQL RLS 및 권한 검사 (13개 테스트)
+npm run test:db       # PGlite 메모리 PostgreSQL RLS 및 권한 검사 (16개 테스트)
 npm run build         # Next.js 프로덕션 빌드 검사
 ```
 
@@ -106,16 +120,20 @@ npm run build         # Next.js 프로덕션 빌드 검사
 
 ```text
 src/
-  app/                  # App Router 경로 (/dashboard, /projects, /tasks, /onboarding, /admin, /login)
+  app/                  # App Router 경로 (/dashboard, /projects, /tasks, /calendar, /finance, /vendors, /members, /onboarding, /admin, /login)
   components/
     ui/                 # shadcn/ui 기반 원자 컴포넌트 (Button, Input, Card, Label)
     layout/             # AppShell, Sidebar
     common/             # StatusChip
-  features/             # 도메인별 응집 (auth, organizations, projects, tasks)
+  features/             # 도메인별 응집 (auth, organizations, projects, tasks, calendar, vendors, finance, members)
     auth/               # 로그인, 회원가입, 세션 액션 및 소셜 버튼
     organizations/      # 온보딩, 가입/생성 신청, 관리자 심사
     projects/           # 프로젝트 CRUD, 상태 칩, 다이얼로그
     tasks/              # 업무 CRUD, 담당자 배정, 체크박스 토글
+    calendar/           # 행사·일정 통합 월간 캘린더, 일정 등록/삭제
+    vendors/            # 제휴·협력 업체 관리, 카테고리 필터, 평점, 누적 거래액
+    finance/            # 수입·지출 회계 장부, 잔액/예산 KPI, 영수증 증빙
+    members/            # 구성원 목록, 가입 승인/반려, 권한 관리, 닉네임 수정
   lib/
     supabase/           # client, server, proxy(경로보호), env(설정검증)
     utils/              # cn 클래스 병합
@@ -134,7 +152,7 @@ docs/                   # 아키텍처, 데이터베이스 스키마, 핸드오�
 - [x] **Phase 1-C**: 학생회 조직 온보딩 (생성 신청, 운영자 승인, 가입 신청)
 - [x] **Phase 1-D**: 프로젝트(Projects) CRUD 및 대시보드 실데이터 연동
 - [x] **Phase 1-E**: 업무 관리(Tasks) CRUD 및 담당자 배정, 체크리스트 연동
-- [ ] **Phase 1-F**: 회의록(Meetings) & 결정사항(Decisions) 도메인 구축
-- [ ] **Phase 1-G**: AI 회의록 분석 (안건 요약, 태스크/결정사항 후보 추출 및 사용자 승인)
-- [ ] **Phase 2**: 캘린더 연동, 예산(Budget), 제휴/업체(Vendor) 관리
+- [x] **Phase 1-F**: 캘린더(`events`), 제휴·협력 업체(`vendors`), 회계 장부(`finance`/`budgets`) 도메인 구축
+- [ ] **Phase 1-G**: 회의록(Meetings) & 결정사항(Decisions) 도메인 구축
+- [ ] **Phase 1-H**: AI 회의록 분석 (안건 요약, 태스크/결정사항 후보 추출 및 사용자 승인)
 - [ ] **Phase 3**: Google Drive 연동, 인수인계 RAG 어시스턴트

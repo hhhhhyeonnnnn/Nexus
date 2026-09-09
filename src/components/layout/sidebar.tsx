@@ -9,6 +9,7 @@ import {
   Folder,
   LayoutGrid,
   ListChecks,
+  Receipt,
   Search,
   Sparkles,
   Users,
@@ -17,9 +18,7 @@ import { StatusChip } from "@/components/common/status-chip";
 import { cn } from "@/lib/utils";
 
 const upcomingNavigation = [
-  { label: "캘린더", icon: CalendarDays },
-  { label: "문서", icon: FileText },
-  { label: "제휴·업체", icon: Building2 },
+  { label: "문서 및 회의록", icon: FileText },
   { label: "AI 어시스턴트", icon: Sparkles },
 ];
 
@@ -29,6 +28,9 @@ export function Sidebar() {
   const isDashboard = pathname === "/dashboard";
   const isProjects = pathname.startsWith("/projects");
   const isTasks = pathname.startsWith("/tasks");
+  const isCalendar = pathname.startsWith("/calendar");
+  const isFinance = pathname.startsWith("/finance");
+  const isVendors = pathname.startsWith("/vendors");
   const isMembers = pathname.startsWith("/members");
 
   return (
@@ -94,6 +96,45 @@ export function Sidebar() {
         </Link>
 
         <Link
+          href="/calendar"
+          className={cn(
+            "flex h-9 items-center gap-3 rounded-md px-2 font-medium transition-colors text-sm",
+            isCalendar
+              ? "bg-accent text-accent-foreground font-semibold"
+              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+          )}
+        >
+          <CalendarDays size={18} aria-hidden="true" />
+          캘린더
+        </Link>
+
+        <Link
+          href="/finance"
+          className={cn(
+            "flex h-9 items-center gap-3 rounded-md px-2 font-medium transition-colors text-sm",
+            isFinance
+              ? "bg-accent text-accent-foreground font-semibold"
+              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+          )}
+        >
+          <Receipt size={18} aria-hidden="true" />
+          회계 장부
+        </Link>
+
+        <Link
+          href="/vendors"
+          className={cn(
+            "flex h-9 items-center gap-3 rounded-md px-2 font-medium transition-colors text-sm",
+            isVendors
+              ? "bg-accent text-accent-foreground font-semibold"
+              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+          )}
+        >
+          <Building2 size={18} aria-hidden="true" />
+          제휴·업체
+        </Link>
+
+        <Link
           href="/members"
           className={cn(
             "flex h-9 items-center gap-3 rounded-md px-2 font-medium transition-colors text-sm",
@@ -128,6 +169,15 @@ export function Sidebar() {
         </Link>
         <Link href="/tasks" className="block px-2 py-1 hover:underline text-foreground">
           전체 업무 관리 →
+        </Link>
+        <Link href="/calendar" className="block px-2 py-1 hover:underline text-foreground">
+          학생회 캘린더 →
+        </Link>
+        <Link href="/finance" className="block px-2 py-1 hover:underline text-foreground">
+          회계 장부 정리 →
+        </Link>
+        <Link href="/vendors" className="block px-2 py-1 hover:underline text-foreground">
+          제휴·업체 관리 →
         </Link>
         <Link href="/members" className="block px-2 py-1 hover:underline text-foreground">
           구성원 및 신청 관리 →

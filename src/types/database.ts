@@ -23,7 +23,10 @@ export type Database = {
           organization_id: string
           planned_amount: number
           project_id: string | null
+          receipt_url: string | null
           title: string
+          transaction_date: string
+          type: "INCOME" | "EXPENSE"
           vendor_id: string | null
         }
         Insert: {
@@ -34,7 +37,10 @@ export type Database = {
           organization_id: string
           planned_amount?: number
           project_id?: string | null
+          receipt_url?: string | null
           title: string
+          transaction_date?: string
+          type?: "INCOME" | "EXPENSE"
           vendor_id?: string | null
         }
         Update: {
@@ -45,7 +51,10 @@ export type Database = {
           organization_id?: string
           planned_amount?: number
           project_id?: string | null
+          receipt_url?: string | null
           title?: string
+          transaction_date?: string
+          type?: "INCOME" | "EXPENSE"
           vendor_id?: string | null
         }
         Relationships: [
