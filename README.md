@@ -32,6 +32,8 @@ Nexus는 현재 핵심 온보딩 및 업무 실행 체계가 구축되어 실제
    - 지금 당장 마감이 임박한 업무 목록 및 최근 프로젝트 실시간 렌더링
 6. **구성원 관리 (`/members`)**
    - 학생회 소속 구성원 목록 조회 및 권한 배지 (`총학생회장`, `부총학생회장`, `관리자`, `구성원`)
+   - 동일 학생회 구성원 간 프로필(이름, 이메일) 상호 조회 지원 (RLS 다중 테넌트 격리 준수)
+   - 소셜 로그인(Kakao, Naver, Google) 메타데이터 닉네임 자동 동기화 및 내 표시 이름 직접 변경 기능 제공
    - 학생회 관리자(`ADMIN`+)의 구성원 권한 변경 및 내보내기 관리
    - 신규 팀원 가입 신청 대기 목록 확인 및 원클릭 **가입 승인 / 반려** 처리
    - 사이드바 내 **'구성원'**과 **'제휴·업체'** 메뉴 분리
@@ -59,7 +61,7 @@ npm run dev
 npm run lint          # ESLint 린트 검사
 npm run typecheck     # TypeScript strict 타입 검사
 npm run test:config   # Supabase 설정 안전성 검사
-npm run test:db       # PGlite 메모리 PostgreSQL RLS 및 권한 검사 (10개 테스트)
+npm run test:db       # PGlite 메모리 PostgreSQL RLS 및 권한 검사 (13개 테스트)
 npm run build         # Next.js 프로덕션 빌드 검사
 ```
 

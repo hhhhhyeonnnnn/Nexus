@@ -4,6 +4,7 @@ import { useTransition, useState } from "react";
 import { Shield, UserMinus, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MemberRoleBadge } from "./member-role-badge";
+import { EditProfileDialog } from "@/features/auth/components/edit-profile-dialog";
 import {
   updateMemberRole,
   removeMember,
@@ -128,6 +129,12 @@ export function MemberItem({
             <UserMinus size={14} />
             <span>내보내기</span>
           </Button>
+        </div>
+      )}
+
+      {isMe && (
+        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+          <EditProfileDialog currentName={member.name} />
         </div>
       )}
     </div>

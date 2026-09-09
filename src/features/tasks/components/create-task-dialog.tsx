@@ -131,7 +131,7 @@ export function CreateTaskDialog({
                     <option value="">(담당자 미지정)</option>
                     {members.map((m) => (
                       <option key={m.user_id} value={m.user_id}>
-                        {m.profiles?.name ?? m.user_id.slice(0, 8)}
+                        {m.profiles?.name || m.profiles?.email || `구성원 (${m.user_id.slice(0, 8)})`}
                       </option>
                     ))}
                   </select>

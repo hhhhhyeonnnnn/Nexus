@@ -26,6 +26,7 @@ before(async () => {
   await db.exec(await readFile(new URL("../supabase/migrations/20260909200000_org_onboarding.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260909300000_projects_write_policies.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260909400000_tasks_write_policies.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../supabase/migrations/20260909500000_profiles_shared_read_policies.sql", import.meta.url), "utf8"));
 
   for (const n of [1, 2]) {
     await db.exec(`
@@ -43,9 +44,6 @@ before(async () => {
       insert into public.files(organization_id, project_id, title, external_url) values ('${id(n)}', '${id(n)}', 'Document', 'https://example.test/document');
     `);
   }
-
-  // Set user 1 as site admin for testing admin workflows
-  await db.exec(`update public.profiles set is_site_admin = true where id = '${id(1)}'`);
 });
 
 after(async () => { await db.close(); });
@@ -117,12 +115,16 @@ test("site admin can create org while regular user is denied", async () => {
   } finally { await db.exec("reset role"); }
 
   // Site admin (user 1) can insert organizations
+  await db.exec(`update public.profiles set is_site_admin = true where id = '${id(1)}'`);
   await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(1)}';`);
   try {
     await db.exec(`insert into public.organizations(id, name, university_name) values ('${id(10)}', 'Approved Org', 'Univ')`);
     const { rows } = await db.query(`select name from public.organizations where id = '${id(10)}'`);
     assert.equal(rows[0].name, "Approved Org");
-  } finally { await db.exec("reset role"); }
+  } finally {
+    await db.exec("reset role");
+    await db.exec(`update public.profiles set is_site_admin = false where id = '${id(1)}'`);
+  }
 });
 
 test("cross-organization relationships are rejected even for privileged inserts", async () => {
@@ -200,6 +202,85 @@ test("organization member can create, update, and delete tasks within own org on
     const { rowCount: crossDelete } = await db.query(`delete from public.tasks where id = '${id(1)}'`);
     assert.equal(crossDelete, 0);
   } finally { await db.exec("reset role"); }
+});
+
+test("members of the same organization can view each other's profiles, but not members of other organizations", async () => {
+  // Add User 3 to Org 1
+  await db.exec(`
+    insert into auth.users values ('${id(3)}');
+    insert into public.profiles(id, name, email) values ('${id(3)}', 'Member 3', 'member3@example.test');
+    insert into public.organization_members values ('${id(1)}', '${id(3)}', 'MEMBER');
+  `);
+
+  // User 3 (in Org 1) queries profiles: should see User 1 and User 3 (both in Org 1), but NOT User 2 (in Org 2)
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(3)}';`);
+  try {
+    const { rows } = await db.query("select id, name, email from public.profiles order by name");
+    const ids = rows.map((r) => r.id).sort();
+    assert.deepEqual(ids, [id(1), id(3)].sort());
+  } finally { await db.exec("reset role"); }
+
+  // User 2 (in Org 2) queries profiles: should see only User 2
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+  try {
+    const { rows } = await db.query("select id, name, email from public.profiles");
+    assert.deepEqual(rows.map((r) => r.id), [id(2)]);
+  } finally { await db.exec("reset role"); }
+});
+
+test("organization admin can view profiles of applicants who requested to join their organization", async () => {
+  // User 4 is an applicant who submitted a join request to Org 1
+  await db.exec(`
+    insert into auth.users values ('${id(4)}');
+    insert into public.profiles(id, name, email) values ('${id(4)}', 'Applicant 4', 'applicant4@example.test');
+    insert into public.organization_join_requests(organization_id, requester_id, message, status)
+    values ('${id(1)}', '${id(4)}', 'Please accept me', 'pending');
+  `);
+
+  // Set User 1 as PRESIDENT of Org 1
+  await db.exec(`update public.organization_members set role = 'PRESIDENT' where organization_id = '${id(1)}' and user_id = '${id(1)}'`);
+
+  // User 1 (Admin of Org 1) queries profiles: should see User 1, User 3 (co-members) AND User 4 (applicant to Org 1)
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(1)}';`);
+  try {
+    const { rows } = await db.query("select id from public.profiles");
+    const ids = rows.map((r) => r.id);
+    assert.ok(ids.includes(id(4)), "Org admin should be able to view applicant profile");
+    assert.ok(!ids.includes(id(2)), "Org admin should not view members of unrelated orgs without site-admin");
+  } finally { await db.exec("reset role"); }
+
+  // User 2 (in Org 2) queries profiles: should NOT see User 4
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+  try {
+    const { rows } = await db.query("select id from public.profiles");
+    const ids = rows.map((r) => r.id);
+    assert.ok(!ids.includes(id(4)), "Unrelated org member should NOT view applicant profile");
+  } finally { await db.exec("reset role"); }
+
+  // User 3 (regular MEMBER of Org 1, not admin) queries profiles: should NOT see User 4
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(3)}';`);
+  try {
+    const { rows } = await db.query("select id from public.profiles");
+    const ids = rows.map((r) => r.id);
+    assert.ok(!ids.includes(id(4)), "Regular member (non-admin) should NOT view applicant profile");
+  } finally { await db.exec("reset role"); }
+});
+
+test("site admin can view all profiles", async () => {
+  await db.exec(`update public.profiles set is_site_admin = true where id = '${id(1)}'`);
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(1)}';`);
+  try {
+    const { rows } = await db.query("select id from public.profiles");
+    const ids = rows.map((r) => r.id);
+    // Should see users 1, 2, 3, 4
+    assert.ok(ids.includes(id(1)));
+    assert.ok(ids.includes(id(2)));
+    assert.ok(ids.includes(id(3)));
+    assert.ok(ids.includes(id(4)));
+  } finally {
+    await db.exec("reset role");
+    await db.exec(`update public.profiles set is_site_admin = false where id = '${id(1)}'`);
+  }
 });
 
 
