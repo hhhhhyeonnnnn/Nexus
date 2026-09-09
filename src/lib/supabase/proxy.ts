@@ -94,7 +94,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) {
+  if (pathname.startsWith("/dashboard")) {
     if (!hasOrg) {
       const url = request.nextUrl.clone();
       url.pathname = "/onboarding";
