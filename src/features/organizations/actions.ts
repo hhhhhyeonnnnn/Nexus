@@ -580,7 +580,7 @@ export async function getOrganizationMembersDetailed(): Promise<MembersPageData>
   const members: OrganizationMemberDetailed[] = rawMembers.map((m) => ({
     userId: m.user_id,
     role: m.role,
-    name: m.profiles?.name ?? "알 수 없음",
+    name: m.profiles?.name || m.profiles?.email?.split("@")[0] || "이름 미설정",
     email: m.profiles?.email ?? "",
     createdAt: m.profiles?.created_at ?? "",
   }));
@@ -653,7 +653,7 @@ export async function getPendingJoinRequestsForCurrentOrg(): Promise<PendingJoin
   return data.map((req) => ({
     id: req.id,
     requesterId: req.requester_id,
-    name: req.profiles?.name ?? "신청자",
+    name: req.profiles?.name || req.profiles?.email?.split("@")[0] || "신청자",
     email: req.profiles?.email ?? "",
     message: req.message,
     createdAt: req.created_at,

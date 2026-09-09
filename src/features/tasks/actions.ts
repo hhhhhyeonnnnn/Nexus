@@ -60,14 +60,15 @@ export async function getTasks(options?: {
   // 2. Fetch member names for assignee mapping
   const { data: members } = await supabase
     .from("organization_members")
-    .select("user_id, profiles(id, name)")
+    .select("user_id, profiles(id, name, email)")
     .eq("organization_id", membership.organizationId);
 
   const memberNameMap = new Map<string, string>();
   if (members) {
     for (const m of members) {
-      if (m.profiles?.name) {
-        memberNameMap.set(m.user_id, m.profiles.name);
+      const displayName = m.profiles?.name || m.profiles?.email?.split("@")[0];
+      if (displayName) {
+        memberNameMap.set(m.user_id, displayName);
       }
     }
   }
@@ -145,14 +146,15 @@ export async function getDashboardTaskSummaries(): Promise<{
   // Fetch member names
   const { data: members } = await supabase
     .from("organization_members")
-    .select("user_id, profiles(id, name)")
+    .select("user_id, profiles(id, name, email)")
     .eq("organization_id", membership.organizationId);
 
   const memberNameMap = new Map<string, string>();
   if (members) {
     for (const m of members) {
-      if (m.profiles?.name) {
-        memberNameMap.set(m.user_id, m.profiles.name);
+      const displayName = m.profiles?.name || m.profiles?.email?.split("@")[0];
+      if (displayName) {
+        memberNameMap.set(m.user_id, displayName);
       }
     }
   }

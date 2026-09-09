@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
@@ -170,25 +171,92 @@ export async function ensureProfile(client?: SupabaseClient<Database>): Promise<
 
   if (!user) return;
 
+  const meta = (user.user_metadata as Record<string, unknown>) ?? {};
+  const rawProps =
+    typeof meta.properties === "object" && meta.properties !== null
+      ? (meta.properties as Record<string, unknown>)
+      : {};
+
+  // Find candidate name across OAuth providers:
+  // Google: full_name, name
+  // Kakao: nickname, properties.nickname, preferred_username, user_name, name, full_name
+  // Naver: name, nickname, properties.nickname
+  const candidateName =
+    (typeof meta.full_name === "string" && meta.full_name.trim()) ||
+    (typeof meta.name === "string" && meta.name.trim()) ||
+    (typeof meta.nickname === "string" && meta.nickname.trim()) ||
+    (typeof rawProps.nickname === "string" && rawProps.nickname.trim()) ||
+    (typeof meta.preferred_username === "string" && meta.preferred_username.trim()) ||
+    (typeof meta.user_name === "string" && meta.user_name.trim()) ||
+    "";
+
+  const resolvedName = candidateName || (user.email?.split("@")[0] ?? "사용자");
+  const email = user.email ?? (typeof meta.email === "string" ? meta.email : "");
+
   // Check whether the profile already exists (self-only SELECT policy allows this)
   const { data: existing } = await supabase
     .from("profiles")
-    .select("id")
+    .select("id, name, email")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (existing) return;
+  if (existing) {
+    const currentName = existing.name?.trim() ?? "";
+    const isGenericName =
+      !currentName ||
+      currentName === "사용자" ||
+      (candidateName && currentName === user.email?.split("@")[0]);
 
-  // Derive display name from provider metadata, fallback to email local part
-  const meta = user.user_metadata as Record<string, unknown>;
-  const name =
-    typeof meta.full_name === "string" && meta.full_name.trim()
-      ? meta.full_name.trim()
-      : typeof meta.name === "string" && meta.name.trim()
-        ? meta.name.trim()
-        : (user.email?.split("@")[0] ?? "사용자");
+    const needsEmailUpdate = !existing.email && email;
 
-  const email = user.email ?? "";
+    if ((isGenericName && candidateName) || needsEmailUpdate) {
+      await supabase
+        .from("profiles")
+        .update({
+          ...(isGenericName && candidateName ? { name: candidateName } : {}),
+          ...(needsEmailUpdate ? { email } : {}),
+        })
+        .eq("id", user.id);
+    }
+    return;
+  }
 
-  await supabase.from("profiles").insert({ id: user.id, name, email });
+  await supabase.from("profiles").insert({ id: user.id, name: resolvedName, email });
 }
+
+export async function updateMyProfileName(
+  newName: string,
+): Promise<{ error: string | null; success?: boolean }> {
+  const trimmed = newName.trim();
+  if (!trimmed) {
+    return { error: "이름을 입력해 주세요." };
+  }
+  if (trimmed.length > 50) {
+    return { error: "이름은 50자 이하여야 합니다." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "로그인이 필요합니다." };
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ name: trimmed })
+    .eq("id", user.id);
+
+  if (error) {
+    return { error: "이름 수정에 실패했습니다: " + error.message };
+  }
+
+  revalidatePath("/members");
+  revalidatePath("/tasks");
+  revalidatePath("/projects");
+  revalidatePath("/dashboard");
+  return { error: null, success: true };
+}
+
