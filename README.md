@@ -100,6 +100,7 @@ PR CI는 lint, typecheck, DB/설정 테스트, production build를 실행합니�
 
 ## 문서 / 다음 Issue
 
+- [개발 도구 전환 및 인수인계](docs/handoff.md)
 - [Architecture](docs/architecture.md)
 - [Database](docs/database.md)
 - [Supabase 연결 및 검증](docs/supabase.md)
