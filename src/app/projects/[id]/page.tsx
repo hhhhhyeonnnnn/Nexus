@@ -4,9 +4,12 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Calendar, CheckSquare, Clock } from "lucide-react";
 import { Card, CardTitle } from "@/components/ui/card";
 import { getProjectById, getCurrentUserOrganization } from "@/features/projects/actions";
+import { getTasks, getOrganizationMembersList } from "@/features/tasks/actions";
 import { ProjectStatusChip } from "@/features/projects/components/project-status-chip";
 import { EditProjectDialog } from "@/features/projects/components/edit-project-dialog";
 import { DeleteProjectButton } from "@/features/projects/components/delete-project-button";
+import { TaskItem } from "@/features/tasks/components/task-item";
+import { CreateTaskDialog } from "@/features/tasks/components/create-task-dialog";
 
 export const metadata: Metadata = {
   title: "프로젝트 상세",
@@ -20,9 +23,11 @@ export default async function ProjectDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [project, membership] = await Promise.all([
+  const [project, membership, tasks, members] = await Promise.all([
     getProjectById(id),
     getCurrentUserOrganization(),
+    getTasks({ projectId: id }),
+    getOrganizationMembersList(),
   ]);
 
   if (!project) {
@@ -44,8 +49,8 @@ export default async function ProjectDetailPage({
   const end = formatDate(project.end_date);
   const dateRange = start && end ? `${start} ~ ${end}` : start ? `${start} ~` : end ? `~ ${end}` : "기간 미설정";
 
-  const totalTasks = project.tasks?.length ?? 0;
-  const doneTasks = project.tasks?.filter((t: { status: string }) => t.status === "DONE").length ?? 0;
+  const totalTasks = tasks.length;
+  const doneTasks = tasks.filter((t) => t.status === "DONE").length;
 
   return (
     <div className="space-y-6">
@@ -117,17 +122,34 @@ export default async function ProjectDetailPage({
         </Card>
       </div>
 
-      {/* Tasks placeholder section for next issue */}
+      {/* Tasks live section */}
       <Card>
-        <CardTitle>프로젝트 업무 목록</CardTitle>
-        <div className="mt-4 flex min-h-40 flex-col items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 p-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            프로젝트에 등록된 업무(Task)를 불러오는 중이거나 아직 등록된 업무가 없습니다.
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground/70">
-            다음 작업(Task 도메인 구축)에서 업무 배정 및 체크리스트 기능이 연결될 예정입니다.
-          </p>
+        <div className="flex items-center justify-between pb-3 border-b border-border">
+          <CardTitle>프로젝트 업무 목록 ({tasks.length})</CardTitle>
+          <CreateTaskDialog
+            members={members}
+            defaultProjectId={project.id}
+            buttonLabel="업무 추가"
+          />
         </div>
+
+        {tasks.length === 0 ? (
+          <div className="mt-4 flex min-h-36 flex-col items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 p-6 text-center">
+            <CheckSquare className="size-8 text-muted-foreground/40 mb-2" />
+            <p className="text-sm text-muted-foreground">
+              아직 이 프로젝트에 등록된 업무가 없습니다.
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground/70">
+              우측 상단의 &apos;업무 추가&apos; 버튼을 눌러 첫 번째 할 일을 배정해 보세요.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-4 flex flex-col gap-2">
+            {tasks.map((task) => (
+              <TaskItem key={task.id} task={task} showProject={false} />
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );

@@ -25,6 +25,7 @@ before(async () => {
   await db.exec(await readFile(new URL("../supabase/migrations/20260909100000_auth_write_policies.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260909200000_org_onboarding.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260909300000_projects_write_policies.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../supabase/migrations/20260909400000_tasks_write_policies.sql", import.meta.url), "utf8"));
 
   for (const n of [1, 2]) {
     await db.exec(`
@@ -93,10 +94,10 @@ test("anonymous reads are denied for all tables", async () => {
   } finally { await db.exec("reset role"); }
 });
 
-test("non-admin member cannot promote self or insert direct tasks", async () => {
+test("non-admin member cannot write unpermitted tables like meetings", async () => {
   await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
   try {
-    await assert.rejects(db.exec(`insert into public.tasks(organization_id, title) values ('${id(2)}', 'Unconfirmed AI task')`), /permission denied/);
+    await assert.rejects(db.exec(`insert into public.meetings(organization_id, title, meeting_date) values ('${id(2)}', 'Unpermitted meeting', now())`), /permission denied/);
     // User 2 (MEMBER) cannot delete projects (blocked by RLS, 0 rows deleted)
     const { rowCount: deletedProjects } = await db.query("delete from public.projects");
     assert.equal(deletedProjects, 0);
@@ -167,4 +168,38 @@ test("organization member can create and update projects in own org but not othe
     assert.equal(rowCount, 0);
   } finally { await db.exec("reset role"); }
 });
+
+test("organization member can create, update, and delete tasks within own org only", async () => {
+  // Member 2 creates task in Org 2 -> SUCCESS
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+  try {
+    await db.exec(`
+      insert into public.tasks(id, organization_id, project_id, assignee_id, title, status)
+      values ('${id(30)}', '${id(2)}', '${id(2)}', '${id(2)}', 'Stage Setup', 'TODO')
+    `);
+    const { rows } = await db.query(`select title, status from public.tasks where id = '${id(30)}'`);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].title, "Stage Setup");
+
+    // Member 2 tries to insert task in Org 1 -> REJECTED
+    await assert.rejects(
+      db.exec(`insert into public.tasks(organization_id, title) values ('${id(1)}', 'Cross-org Task')`),
+      /row-level security policy/,
+    );
+
+    // Member 2 updates status of own task -> SUCCESS
+    await db.exec(`update public.tasks set status = 'DONE' where id = '${id(30)}'`);
+    const { rows: updatedRows } = await db.query(`select status from public.tasks where id = '${id(30)}'`);
+    assert.equal(updatedRows[0].status, "DONE");
+
+    // Member 2 deletes own task (as assignee) -> SUCCESS
+    const { rowCount: deletedRows } = await db.query(`delete from public.tasks where id = '${id(30)}'`);
+    assert.equal(deletedRows, 1);
+
+    // Member 2 tries to delete task belonging to Member 1 in Org 1 -> 0 rows deleted
+    const { rowCount: crossDelete } = await db.query(`delete from public.tasks where id = '${id(1)}'`);
+    assert.equal(crossDelete, 0);
+  } finally { await db.exec("reset role"); }
+});
+
 
