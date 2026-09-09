@@ -18,10 +18,15 @@ import type { Database } from "@/types/database";
 // ---------------------------------------------------------------------------
 
 const AUTH_PATHS = ["/login", "/forgot-password", "/reset-password"];
-const PROTECTED_PATHS = ["/dashboard", "/onboarding", "/admin"];
+const ORG_PATHS = ["/dashboard", "/projects", "/tasks", "/members"];
+const PROTECTED_PATHS = [...ORG_PATHS, "/onboarding", "/admin"];
 
 function isAuthPath(pathname: string) {
   return AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+}
+
+function isOrgPath(pathname: string) {
+  return ORG_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
 
 function isProtectedPath(pathname: string) {
@@ -102,7 +107,7 @@ export async function updateSession(request: NextRequest) {
     return redirectWithCookies(url);
   }
 
-  if (pathname.startsWith("/dashboard")) {
+  if (isOrgPath(pathname)) {
     if (!hasOrg) {
       const url = request.nextUrl.clone();
       url.pathname = "/onboarding";
