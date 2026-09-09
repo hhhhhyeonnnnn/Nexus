@@ -1,7 +1,35 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/database";
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+async function getAuthCallbackUrl(nextPath?: string): Promise<string> {
+  let origin: string | null = null;
+  try {
+    const headerList = await headers();
+    const host = headerList.get("x-forwarded-host") || headerList.get("host");
+    const proto = headerList.get("x-forwarded-proto") || "https";
+    if (host) {
+      origin = `${proto}://${host}`;
+    }
+  } catch {
+    // Outside request context
+  }
+
+  if (!origin) {
+    origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "http://localhost:3000";
+  }
+
+  const base = `${origin}/auth/callback`;
+  return nextPath ? `${base}?next=${encodeURIComponent(nextPath)}` : base;
+}
 
 // ---------------------------------------------------------------------------
 // Email / Password
@@ -19,14 +47,23 @@ export async function loginWithEmail(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (error) {
+  if (error || !data.user) {
     return { error: "이메일 또는 비밀번호가 올바르지 않습니다." };
   }
 
-  await ensureProfile();
-  redirect("/dashboard");
+  await ensureProfile(supabase);
+
+  // Check whether user belongs to an organization to direct to appropriate screen
+  const { data: membership } = await supabase
+    .from("organization_members")
+    .select("organization_id")
+    .eq("user_id", data.user.id)
+    .limit(1)
+    .maybeSingle();
+
+  redirect(membership ? "/dashboard" : "/onboarding");
 }
 
 // ---------------------------------------------------------------------------
@@ -35,9 +72,10 @@ export async function loginWithEmail(
 
 export async function loginWithGoogle(): Promise<void> {
   const supabase = await createClient();
+  const redirectTo = await getAuthCallbackUrl();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback` },
+    options: { redirectTo },
   });
   if (error || !data.url) return;
   redirect(data.url);
@@ -45,9 +83,10 @@ export async function loginWithGoogle(): Promise<void> {
 
 export async function loginWithKakao(): Promise<void> {
   const supabase = await createClient();
+  const redirectTo = await getAuthCallbackUrl();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "kakao",
-    options: { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback` },
+    options: { redirectTo },
   });
   if (error || !data.url) return;
   redirect(data.url);
@@ -57,9 +96,10 @@ export async function loginWithNaver(): Promise<void> {
   // Naver is configured as a Custom OAuth provider in Supabase Dashboard
   // with identifier "custom:naver". Falls back gracefully if not configured.
   const supabase = await createClient();
+  const redirectTo = await getAuthCallbackUrl();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "custom:naver",
-    options: { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback` },
+    options: { redirectTo },
   });
   if (error || !data.url) return;
   redirect(data.url);
@@ -89,8 +129,9 @@ export async function forgotPassword(
   }
 
   const supabase = await createClient();
+  const redirectTo = await getAuthCallbackUrl("/reset-password");
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/reset-password`,
+    redirectTo,
   });
 
   if (error) {
@@ -121,8 +162,8 @@ export async function resetPassword(
 // Profile bootstrap (idempotent — safe to call after every login)
 // ---------------------------------------------------------------------------
 
-export async function ensureProfile(): Promise<void> {
-  const supabase = await createClient();
+export async function ensureProfile(client?: SupabaseClient<Database>): Promise<void> {
+  const supabase = client ?? (await createClient());
   const {
     data: { user },
   } = await supabase.auth.getUser();
