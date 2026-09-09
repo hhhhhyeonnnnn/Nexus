@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage() {
   const isSiteAdmin = await isCurrentUserSiteAdmin();
   if (!isSiteAdmin) {
-    redirect("/onboarding");
+    redirect("/onboarding?error=admin_required");
   }
 
   const requests = await getPendingCreationRequests();

@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function OnboardingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; error?: string }>;
 }) {
   const params = await searchParams;
   const { creationRequests, joinRequests } = await getMyRequests();
@@ -26,6 +26,13 @@ export default async function OnboardingPage({
           새로운 학생회 조직을 등록하거나, 기존 학생회에 가입을 신청할 수 있습니다.
         </p>
       </div>
+
+      {params.error === "admin_required" && (
+        <div className="rounded-lg bg-rose-50 border border-rose-200 p-4 text-xs text-rose-800">
+          ⚠️ 사이트 운영자(is_site_admin) 권한이 있는 계정만 /admin 페이지에 접근할 수 있습니다.
+          Supabase SQL Editor에서 현재 로그인한 계정의 profiles.is_site_admin 값을 true로 설정해 주세요.
+        </div>
+      )}
 
       {params.status === "creation_requested" && (
         <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4 text-xs text-emerald-800">
