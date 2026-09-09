@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   title: "조직 생성 신청 심사",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   const isSiteAdmin = await isCurrentUserSiteAdmin();
   if (!isSiteAdmin) {

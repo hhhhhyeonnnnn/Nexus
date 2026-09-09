@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   title: "학생회 시작하기",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function OnboardingPage({
   searchParams,
 }: {

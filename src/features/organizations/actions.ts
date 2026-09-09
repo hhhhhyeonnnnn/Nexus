@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getSupabaseConfig } from "@/lib/supabase/env";
 
 export type ActionState = {
   error: string | null;
@@ -354,6 +355,8 @@ export async function rejectJoinRequest(requestId: string): Promise<ActionState>
 // ---------------------------------------------------------------------------
 
 export async function isCurrentUserSiteAdmin(): Promise<boolean> {
+  if (!getSupabaseConfig()) return false;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -371,6 +374,8 @@ export async function isCurrentUserSiteAdmin(): Promise<boolean> {
 }
 
 export async function getMyRequests() {
+  if (!getSupabaseConfig()) return { creationRequests: [], joinRequests: [] };
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -398,6 +403,8 @@ export async function getMyRequests() {
 }
 
 export async function searchOrganizations(query?: string) {
+  if (!getSupabaseConfig()) return [];
+
   const supabase = await createClient();
   let q = supabase
     .from("organizations")
@@ -415,6 +422,8 @@ export async function searchOrganizations(query?: string) {
 }
 
 export async function getPendingCreationRequests() {
+  if (!getSupabaseConfig()) return [];
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("organization_creation_requests")

@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   title: "학생회 가입 신청",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function JoinOrgPage() {
   const organizations = await searchOrganizations();
 
