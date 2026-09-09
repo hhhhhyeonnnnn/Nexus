@@ -89,16 +89,34 @@ export async function updateSession(request: NextRequest) {
     return response;
   }
 
-  // Authenticated: check org membership for redirect decisions
-  // Use a lightweight query — only the first row matters.
-  const { data: membership } = await supabase
-    .from("organization_members")
-    .select("organization_id")
-    .eq("user_id", user.id)
-    .limit(1)
-    .maybeSingle();
+  // Authenticated: check org membership for redirect decisions.
+  // When navigating within org pages (/dashboard, /projects, etc.), leverage
+  // the lightweight 'nexus-has-org' cookie flag to bypass repeated DB SELECTs.
+  const isBypassed = pathname.startsWith("/onboarding") || pathname.startsWith("/auth");
+  const orgCookie = isBypassed ? undefined : request.cookies.get("nexus-has-org")?.value;
+  let hasOrg: boolean;
 
-  const hasOrg = !!membership;
+  if (orgCookie === "1") {
+    hasOrg = true;
+  } else if (orgCookie === "0") {
+    hasOrg = false;
+  } else {
+    // Cookie not present or onboarding bypass: query database
+    const { data: membership } = await supabase
+      .from("organization_members")
+      .select("organization_id")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+
+    hasOrg = !!membership;
+    response.cookies.set("nexus-has-org", hasOrg ? "1" : "0", {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24, // 24 hours
+    });
+  }
 
   if (isAuthPath(pathname)) {
     // Already logged in — redirect away from auth pages

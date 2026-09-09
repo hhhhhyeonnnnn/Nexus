@@ -1,0 +1,14 @@
+name: Keep Warm
+on:
+  schedule:
+    # Run every 10 minutes to prevent Vercel Serverless cold sleep
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Vercel Deployment
+        run: |
+          curl -s -f --max-time 10 "https://nexus-kappa-two-10.vercel.app/api/ping" || echo "Keep-warm ping completed"

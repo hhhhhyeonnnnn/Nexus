@@ -1,6 +1,6 @@
 "use server";
 
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -113,6 +113,8 @@ export async function loginWithNaver(): Promise<void> {
 export async function logout(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  const cookieStore = await cookies();
+  cookieStore.delete("nexus-has-org");
   redirect("/login");
 }
 

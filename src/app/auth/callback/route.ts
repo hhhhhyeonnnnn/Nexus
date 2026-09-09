@@ -78,6 +78,15 @@ export async function GET(request: NextRequest) {
         response.cookies.set(name, value, options);
       });
 
+      if (user) {
+        response.cookies.set("nexus-has-org", destination !== "/onboarding" ? "1" : "0", {
+          path: "/",
+          httpOnly: true,
+          sameSite: "lax",
+          maxAge: 60 * 60 * 24,
+        });
+      }
+
       return response;
     }
 

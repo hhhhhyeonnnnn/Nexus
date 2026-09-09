@@ -2,7 +2,7 @@ name: Quality
 on:
   pull_request:
   push:
-    branches: ["feature/**", "fix/**", "docs/**", "chore/**"]
+    branches: ["feature/**", "fix/**", "docs/**", "chore/**", "perf/**"]
 permissions:
   contents: read
 jobs:
