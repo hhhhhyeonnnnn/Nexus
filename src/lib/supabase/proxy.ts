@@ -63,6 +63,14 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  function redirectWithCookies(url: URL | string): NextResponse {
+    const redirectResponse = NextResponse.redirect(url);
+    response.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie);
+    });
+    return redirectResponse;
+  }
+
   // /auth/** is always public (OAuth callback, magic link)
   if (pathname.startsWith("/auth/")) return response;
 
@@ -71,7 +79,7 @@ export async function updateSession(request: NextRequest) {
     if (isProtectedPath(pathname)) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
-      return NextResponse.redirect(url);
+      return redirectWithCookies(url);
     }
     return response;
   }
@@ -91,14 +99,14 @@ export async function updateSession(request: NextRequest) {
     // Already logged in — redirect away from auth pages
     const url = request.nextUrl.clone();
     url.pathname = hasOrg ? "/dashboard" : "/onboarding";
-    return NextResponse.redirect(url);
+    return redirectWithCookies(url);
   }
 
   if (pathname.startsWith("/dashboard")) {
     if (!hasOrg) {
       const url = request.nextUrl.clone();
       url.pathname = "/onboarding";
-      return NextResponse.redirect(url);
+      return redirectWithCookies(url);
     }
   }
 
@@ -106,7 +114,7 @@ export async function updateSession(request: NextRequest) {
     if (hasOrg) {
       const url = request.nextUrl.clone();
       url.pathname = "/dashboard";
-      return NextResponse.redirect(url);
+      return redirectWithCookies(url);
     }
   }
 

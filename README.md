@@ -72,6 +72,15 @@ npm run build         # Next.js 프로덕션 빌드 검사
 | `NEXT_PUBLIC_SOCIAL_NAVER` | 선택 | Naver 소셜 로그인 활성화 (`true`/`false`) |
 | `SUPABASE_SERVICE_ROLE_KEY` | 개발/마이그레이션 전용 | 클라이언트 노출 절대 금지, 서버 관리 키 |
 
+### 🌐 Supabase Auth URL 설정 (배포 및 OAuth 필수)
+
+소셜 로그인 및 리디렉트가 배포 환경에서 정상 작동하려면 Supabase Dashboard의 **Authentication > URL Configuration**을 설정해야 합니다:
+- **Site URL**: `https://nexus-kappa-two-10.vercel.app` (또는 실제 배포 도메인)
+- **Redirect URLs**:
+  - `https://nexus-kappa-two-10.vercel.app/**`
+  - `https://nexus-kappa-two-10.vercel.app/auth/callback`
+  - `http://localhost:3000/**`
+
 ---
 
 ## 🏛 기술 스택 및 아키텍처
