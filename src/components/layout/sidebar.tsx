@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Building2,
   CalendarDays,
   FileText,
   Folder,
@@ -18,7 +19,7 @@ import { cn } from "@/lib/utils";
 const upcomingNavigation = [
   { label: "캘린더", icon: CalendarDays },
   { label: "문서", icon: FileText },
-  { label: "구성원·업체", icon: Users },
+  { label: "제휴·업체", icon: Building2 },
   { label: "AI 어시스턴트", icon: Sparkles },
 ];
 
@@ -28,6 +29,7 @@ export function Sidebar() {
   const isDashboard = pathname === "/dashboard";
   const isProjects = pathname.startsWith("/projects");
   const isTasks = pathname.startsWith("/tasks");
+  const isMembers = pathname.startsWith("/members");
 
   return (
     <div className="flex min-h-full flex-col gap-6 bg-sidebar px-4 pt-6 pb-5">
@@ -91,6 +93,19 @@ export function Sidebar() {
           업무 관리
         </Link>
 
+        <Link
+          href="/members"
+          className={cn(
+            "flex h-9 items-center gap-3 rounded-md px-2 font-medium transition-colors text-sm",
+            isMembers
+              ? "bg-accent text-accent-foreground font-semibold"
+              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+          )}
+        >
+          <Users size={18} aria-hidden="true" />
+          구성원
+        </Link>
+
         {upcomingNavigation.map(({ label, icon: Icon }) => (
           <button
             key={label}
@@ -113,6 +128,9 @@ export function Sidebar() {
         </Link>
         <Link href="/tasks" className="block px-2 py-1 hover:underline text-foreground">
           전체 업무 관리 →
+        </Link>
+        <Link href="/members" className="block px-2 py-1 hover:underline text-foreground">
+          구성원 및 신청 관리 →
         </Link>
       </div>
 

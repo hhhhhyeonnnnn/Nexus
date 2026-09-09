@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseConfig } from "@/lib/supabase/env";
+import type { Database } from "@/types/database";
+
+export type OrgRole = Database["public"]["Enums"]["organization_role"];
 
 export type ActionState = {
   error: string | null;
@@ -302,6 +305,7 @@ export async function approveJoinRequest(requestId: string): Promise<ActionState
     })
     .eq("id", requestId);
 
+  revalidatePath("/members");
   revalidatePath("/dashboard");
   return { error: null, success: true };
 }
@@ -346,7 +350,83 @@ export async function rejectJoinRequest(requestId: string): Promise<ActionState>
     })
     .eq("id", requestId);
 
+  revalidatePath("/members");
   revalidatePath("/dashboard");
+  return { error: null, success: true };
+}
+
+export async function updateMemberRole(
+  targetUserId: string,
+  newRole: OrgRole,
+): Promise<ActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "인증되지 않은 요청입니다." };
+  if (user.id === targetUserId) {
+    return { error: "본인의 역할은 직접 변경할 수 없습니다." };
+  }
+
+  const { data: myMembership } = await supabase
+    .from("organization_members")
+    .select("organization_id, role")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (!myMembership || !["PRESIDENT", "VICE_PRESIDENT", "ADMIN"].includes(myMembership.role)) {
+    return { error: "학생회 관리자만 역할을 변경할 수 있습니다." };
+  }
+
+  const { error } = await supabase
+    .from("organization_members")
+    .update({ role: newRole })
+    .eq("organization_id", myMembership.organization_id)
+    .eq("user_id", targetUserId);
+
+  if (error) {
+    return { error: "역할 변경에 실패했습니다: " + error.message };
+  }
+
+  revalidatePath("/members");
+  return { error: null, success: true };
+}
+
+export async function removeMember(targetUserId: string): Promise<ActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "인증되지 않은 요청입니다." };
+  if (user.id === targetUserId) {
+    return { error: "스스로를 내보낼 수는 없습니다." };
+  }
+
+  const { data: myMembership } = await supabase
+    .from("organization_members")
+    .select("organization_id, role")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (!myMembership || !["PRESIDENT", "VICE_PRESIDENT", "ADMIN"].includes(myMembership.role)) {
+    return { error: "학생회 관리자만 구성원을 내보낼 수 있습니다." };
+  }
+
+  const { error } = await supabase
+    .from("organization_members")
+    .delete()
+    .eq("organization_id", myMembership.organization_id)
+    .eq("user_id", targetUserId);
+
+  if (error) {
+    return { error: "구성원 삭제에 실패했습니다: " + error.message };
+  }
+
+  revalidatePath("/members");
   return { error: null, success: true };
 }
 
@@ -433,4 +513,149 @@ export async function getPendingCreationRequests() {
 
   if (error) return [];
   return data ?? [];
+}
+
+export interface OrganizationMemberDetailed {
+  userId: string;
+  role: OrgRole;
+  name: string;
+  email: string;
+  createdAt: string;
+}
+
+export interface MembersPageData {
+  organization: {
+    id: string;
+    name: string;
+    universityName: string;
+  } | null;
+  currentUserId: string;
+  myRole: OrgRole | null;
+  isAdmin: boolean;
+  members: OrganizationMemberDetailed[];
+  pendingRequestsCount: number;
+}
+
+export async function getOrganizationMembersDetailed(): Promise<MembersPageData> {
+  const empty: MembersPageData = {
+    organization: null,
+    currentUserId: "",
+    myRole: null,
+    isAdmin: false,
+    members: [],
+    pendingRequestsCount: 0,
+  };
+
+  if (!getSupabaseConfig()) return empty;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return empty;
+
+  // 1. Get current user's org membership
+  const { data: myMembership } = await supabase
+    .from("organization_members")
+    .select("organization_id, role, organizations(id, name, university_name)")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (!myMembership || !myMembership.organizations) return empty;
+
+  const orgId = myMembership.organization_id;
+  const myRole = myMembership.role;
+  const isAdmin = ["PRESIDENT", "VICE_PRESIDENT", "ADMIN"].includes(myRole);
+
+  // 2. Get all members in this organization
+  const { data: rawMembers, error } = await supabase
+    .from("organization_members")
+    .select("user_id, role, profiles(id, name, email, created_at)")
+    .eq("organization_id", orgId);
+
+  if (error || !rawMembers) return empty;
+
+  const members: OrganizationMemberDetailed[] = rawMembers.map((m) => ({
+    userId: m.user_id,
+    role: m.role,
+    name: m.profiles?.name ?? "알 수 없음",
+    email: m.profiles?.email ?? "",
+    createdAt: m.profiles?.created_at ?? "",
+  }));
+
+  // 3. If admin, count pending join requests
+  let pendingRequestsCount = 0;
+  if (isAdmin) {
+    const { count } = await supabase
+      .from("organization_join_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId)
+      .eq("status", "pending");
+
+    pendingRequestsCount = count ?? 0;
+  }
+
+  return {
+    organization: {
+      id: myMembership.organizations.id,
+      name: myMembership.organizations.name,
+      universityName: myMembership.organizations.university_name,
+    },
+    currentUserId: user.id,
+    myRole,
+    isAdmin,
+    members,
+    pendingRequestsCount,
+  };
+}
+
+export interface PendingJoinRequestItem {
+  id: string;
+  requesterId: string;
+  name: string;
+  email: string;
+  message: string;
+  createdAt: string;
+}
+
+export async function getPendingJoinRequestsForCurrentOrg(): Promise<PendingJoinRequestItem[]> {
+  if (!getSupabaseConfig()) return [];
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return [];
+
+  const { data: myMembership } = await supabase
+    .from("organization_members")
+    .select("organization_id, role")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (!myMembership || !["PRESIDENT", "VICE_PRESIDENT", "ADMIN"].includes(myMembership.role)) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("organization_join_requests")
+    .select("id, requester_id, message, created_at, profiles:requester_id(name, email)")
+    .eq("organization_id", myMembership.organization_id)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  return data.map((req) => ({
+    id: req.id,
+    requesterId: req.requester_id,
+    name: req.profiles?.name ?? "신청자",
+    email: req.profiles?.email ?? "",
+    message: req.message,
+    createdAt: req.created_at,
+  }));
 }
