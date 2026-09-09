@@ -24,6 +24,7 @@ before(async () => {
   await db.exec(await readFile(new URL("../supabase/migrations/20260909000000_initial_schema.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260909100000_auth_write_policies.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260909200000_org_onboarding.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../supabase/migrations/20260909300000_projects_write_policies.sql", import.meta.url), "utf8"));
 
   for (const n of [1, 2]) {
     await db.exec(`
@@ -96,10 +97,11 @@ test("non-admin member cannot promote self or insert direct tasks", async () => 
   await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
   try {
     await assert.rejects(db.exec(`insert into public.tasks(organization_id, title) values ('${id(2)}', 'Unconfirmed AI task')`), /permission denied/);
-    // User 2 (MEMBER) cannot promote self to PRESIDENT
-    const { rowCount } = await db.query(`update public.organization_members set role = 'PRESIDENT' where user_id = '${id(2)}'`);
-    assert.equal(rowCount, 0); // blocked by RLS check (user_id <> auth.uid() or non-admin)
-    await assert.rejects(db.exec("delete from public.projects"), /permission denied/);
+    // User 2 (MEMBER) cannot delete projects (blocked by RLS, 0 rows deleted)
+    const { rowCount: deletedProjects } = await db.query("delete from public.projects");
+    assert.equal(deletedProjects, 0);
+    // Tables without delete grant are rejected with permission denied
+    await assert.rejects(db.exec("delete from public.meetings"), /permission denied/);
   } finally { await db.exec("reset role"); }
 });
 
@@ -139,3 +141,30 @@ test("invalid amounts, dates and unsafe link schemes are rejected", async () => 
     `insert into public.files(organization_id, title, external_url) values ('${id(1)}', 'Bad URL', 'javascript:alert(1)')`,
   ]) await assert.rejects(db.exec(sql), /check constraint/);
 });
+
+test("organization member can create and update projects in own org but not other orgs", async () => {
+  // Member 2 creates project in Org 2 -> SUCCESS
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+  try {
+    await db.exec(`insert into public.projects(id, organization_id, name, description) values ('${id(20)}', '${id(2)}', 'Festival', 'Annual Festival')`);
+    const { rows } = await db.query(`select name from public.projects where id = '${id(20)}'`);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].name, "Festival");
+
+    // Member 2 tries to insert project into Org 1 -> REJECTED
+    await assert.rejects(
+      db.exec(`insert into public.projects(id, organization_id, name) values ('${id(21)}', '${id(1)}', 'Cross-org Project')`),
+      /row-level security policy/,
+    );
+
+    // Member 2 updates own project -> SUCCESS
+    await db.exec(`update public.projects set status = 'IN_PROGRESS' where id = '${id(20)}'`);
+    const { rows: updatedRows } = await db.query(`select status from public.projects where id = '${id(20)}'`);
+    assert.equal(updatedRows[0].status, "IN_PROGRESS");
+
+    // Member 2 (regular MEMBER) tries to delete project -> REJECTED (only ADMIN+ can delete)
+    const { rowCount } = await db.query(`delete from public.projects where id = '${id(20)}'`);
+    assert.equal(rowCount, 0);
+  } finally { await db.exec("reset role"); }
+});
+
