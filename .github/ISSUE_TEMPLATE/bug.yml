@@ -1,0 +1,26 @@
+name: 버그 신고
+description: 재현 가능한 오류를 기록합니다.
+title: "[BUG] "
+body:
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 재현 방법
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: 기대 동작과 실제 동작
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 환경
+      placeholder: 브라우저, 운영체제, 커밋 또는 브랜치
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 로그 / 스크린샷
+      description: API 키, 개인정보, 토큰은 제거해 주세요.
