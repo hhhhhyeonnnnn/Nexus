@@ -4,8 +4,8 @@
 - Nexus is a Student Council Operating System.
 - Use Next.js App Router, TypeScript strict mode, Tailwind CSS, shadcn/ui and Lucide.
 - Do not introduce another backend framework without explicit approval.
-- Initial setup is limited to the foundation, documentation, migration draft and app shell.
-- Do not add full CRUD, live AI, RAG, integrations or complex authentication during setup.
+- The initial foundation is complete. Implement only the next domain or setup task the user authorizes.
+- Supabase setup does not include login UI, organization CRUD, live AI, RAG or deployment.
 
 ## Architecture
 - Preserve the existing project structure and separate features by domain.
@@ -57,6 +57,7 @@ Before completing a task:
 2. Run `npm run typecheck`.
 3. Run `npm run build` when changing the app or configuration.
 4. Test the modified flow; run `npm run test:db` for database changes.
+   Run `npm run test:config` for Supabase configuration changes and `npm run db:check` when connecting a development project.
 5. Ensure no unrelated files or secrets were changed.
 6. Update documentation when APIs, schemas or architecture change.
 

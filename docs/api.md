@@ -3,7 +3,7 @@
 ## 현재 구현
 
 - `GET /`: `/dashboard` redirect.
-- `GET /dashboard`: 인증이나 외부 데이터 연결 없는 App Shell.
+- `GET /dashboard`: 공개 App Shell. Supabase 설정 시 Proxy가 세션을 갱신하지만 로그인 강제와 데이터 조회는 아직 없습니다.
 - 정의되지 않은 경로: 공통 404.
 
 외부 공개 API, Server Actions, 로그인 callback은 아직 없습니다. `src/app/api`는 후속 라우트를 위한 빈 폴더입니다.

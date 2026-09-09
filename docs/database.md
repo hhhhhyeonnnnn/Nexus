@@ -1,8 +1,8 @@
-# Database · 초기 Migration 초안
+# Database · 초기 Migration
 
 파일: `supabase/migrations/20260909000000_initial_schema.sql`
 
-**원격 미적용.** Supabase가 제공하는 `auth.users`, `auth.uid()`, `anon`, `authenticated`를 전제로 합니다. 조직별 SELECT만 허용하며 모든 일반 클라이언트 INSERT/UPDATE/DELETE는 닫혀 있습니다. 이 문서는 서비스의 CRUD 완성을 의미하지 않습니다.
+**`nexus-dev` 개발 DB에 적용 완료.** Supabase가 제공하는 `auth.users`, `auth.uid()`, `anon`, `authenticated`를 전제로 합니다. 조직별 SELECT만 허용하며 모든 일반 클라이언트 INSERT/UPDATE/DELETE는 닫혀 있습니다. 이 문서는 서비스의 CRUD 완성을 의미하지 않습니다.
 
 ## 테이블
 
@@ -52,12 +52,9 @@ npm run test:db
 
 PGlite의 실제 PostgreSQL 엔진에서 초안을 실행하고 2개 조직 fixture로 RLS, 익명 차단, 비회원 차단, 쓰기 차단, 교차 조직 FK, 금액/날짜/URL 제약을 검사합니다. auth 함수는 테스트용 대체 구현이며 Supabase Auth 통합·PostgREST·세션 동작은 검증하지 않습니다.
 
-후속 Supabase 연결 Issue에서:
-1. Supabase CLI와 Docker 준비 후 `supabase init`, `supabase start`로 로컬 환경을 구성합니다.
-2. **로컬 개발 DB**에 한해 `supabase migration up --local`로 migration을 적용합니다.
-3. 실제 JWT를 사용하는 다중 조직 접근 및 RLS를 확인합니다.
-4. DB 타입을 생성하고 browser/server client를 분리합니다.
-5. 팀 리뷰 후 별도의 배포 절차로 hosted 개발 DB에 적용합니다.
+개발 DB(PostgreSQL 17.6)에 migration을 적용하고 11개 테이블의 RLS와 migration 이력을 확인했습니다. 실제 Auth JWT로 조직별 조회 및 쓰기 차단을 검증하는 `npm run test:db:remote -- --development`는 임시 사용자/데이터를 생성하고 정리합니다. Docker 기반 로컬 Supabase 실행은 별도 런타임이 필요하며 이 Mac에서는 검증하지 않았습니다.
+
+DB 타입은 `src/types/database.ts`에 생성하며 browser/server client를 분리합니다. 재현 명령과 개발 프로젝트 정보는 [Supabase 연결 문서](supabase.md)에 정리합니다.
 
 데이터 삭제를 수반하는 `db reset`은 기본 실행 절차에 포함하지 않습니다. 이미 적용한 migration은 수정하지 않고 새 migration을 추가합니다.
 

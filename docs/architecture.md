@@ -2,13 +2,13 @@
 
 ## 제품 경계
 
-Nexus는 별도 백엔드 서버 없이 Next.js에서 UI, Server Actions 및 Route Handlers를 제공합니다. Supabase가 데이터와 인증을 담당하며 OpenAI 요청은 Next.js 서버에서만 실행할 예정입니다. 현재 실행 경로는 정적 Dashboard Shell뿐입니다.
+Nexus는 별도 백엔드 서버 없이 Next.js에서 UI, Server Actions 및 Route Handlers를 제공합니다. Supabase가 데이터와 인증을 담당하며 OpenAI 요청은 Next.js 서버에서만 실행할 예정입니다. Dashboard는 데이터 미연결 Shell이며 Supabase 설정 시 Proxy가 사용자 세션을 갱신합니다.
 
 ```text
 Browser → Next.js App Router
             ├─ Server Components / 공통 UI
             ├─ Server Actions / Route Handlers (예정)
-            ├─ Supabase user-scoped client → PostgreSQL + RLS (예정)
+            ├─ Supabase user-scoped client → PostgreSQL + RLS (연결 기반 준비)
             └─ AI schema validation → 사용자 확인 → 원자적 반영 (예정)
 ```
 
@@ -19,9 +19,9 @@ Browser → Next.js App Router
 - `src/components/ui`: shadcn/ui의 로컬 소스 패턴으로 Button, Card를 관리합니다. Figma에 맞춰 크기와 shadow를 조정했습니다.
 - `src/components/common`: 도메인에 의존하지 않는 StatusChip 등.
 - `src/features/<domain>`: 후속 도메인 조회/변경/검증 및 도메인 컴포넌트.
-- `src/lib/supabase`: 후속 browser/server client. 연결 전이라 빈 위치만 준비했습니다.
+- `src/lib/supabase`: browser/server client, 공개 설정 검증, 세션 갱신 Proxy. 일반 요청은 공개 키와 사용자 세션으로 RLS를 적용합니다.
 - `src/lib/ai`: 후속 server-only OpenAI 호출과 schema 검증.
-- `src/types`: 후속 생성 Supabase 타입. 아직 사용하지 않는 가상 DB 타입을 작성하지 않습니다.
+- `src/types`: 실제 개발 DB에서 CLI로 생성한 Supabase 타입. 스키마 변경 후 다시 생성합니다.
 
 AppShell의 모바일 토글만 client state를 사용하고 Dashboard 본문은 Server Component입니다. 데이터 저장소나 전역 상태 관리 라이브러리는 도입하지 않았습니다.
 
@@ -33,13 +33,13 @@ Figma의 데이터 예시는 복사하지 않았습니다. 버튼/메뉴가 실�
 
 ## 인증 및 저장 원칙
 
-RLS와 사용자 세션을 함께 검증할 예정입니다. 서버 호출이라는 이유만으로 권한 검사를 생략하지 않습니다. 조직 생성과 첫 관리자 가입은 한 트랜잭션으로 구현해야 하며 현재는 API 및 쓰기 권한을 열지 않았습니다.
+Proxy에서 세션을 갱신하며 현재 경로는 공개 상태입니다. 인증 UI와 접근 제어는 후속 작업으로, 각 서버 작업에서 세션과 RLS를 함께 검증해야 합니다. 서버 호출이라는 이유만으로 권한 검사를 생략하지 않습니다. 조직 생성과 첫 관리자 가입은 한 트랜잭션으로 구현해야 하며 현재는 API 및 쓰기 권한을 열지 않았습니다.
 
 AI 분석 결과는 UI의 검토 상태로만 전달합니다. 확인 시 서버가 schema와 조직 권한을 다시 검사하고 Task/Decision을 원자적으로 저장해야 합니다. 동일 결과의 재확인으로 중복 생성되지 않도록 후속 구현에서 멱등성을 설계합니다.
 
 ## 개발 및 배포
 
-Node.js 24 / npm lockfile / strict TypeScript / ESLint / GitHub Actions를 공통 기준으로 합니다. Next.js build를 Vercel에서 실행하는 구조이며 Supabase 연결 및 배포는 아직 구성하지 않았습니다. 외부 폰트 서버가 빌드 가용성에 영향을 주지 않도록 Fontsource를 번들링합니다.
+Node.js 24 / npm lockfile / strict TypeScript / ESLint / GitHub Actions를 공통 기준으로 합니다. Next.js build를 Vercel에서 실행하는 구조이며 Supabase 개발 연결을 구성했으며 웹 배포는 미룬 상태입니다. 연결과 검증 절차는 [Supabase 문서](supabase.md)를 따릅니다. 외부 폰트 서버가 빌드 가용성에 영향을 주지 않도록 Fontsource를 번들링합니다.
 
 ## 공식 참고
 

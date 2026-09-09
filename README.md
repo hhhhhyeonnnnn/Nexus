@@ -5,9 +5,9 @@
 
 ## 현재 범위
 
-초기 개발 기반만 구성했습니다. `/`는 `/dashboard`로 이동하며 Figma 기반 공통 App Layout, Sidebar와 데이터 미연결 상태의 Dashboard Shell을 표시합니다. 모바일 메뉴 열기/닫기와 본문 건너뛰기를 지원합니다. 비활성 메뉴와 생성 버튼은 후속 개발 대상입니다.
+초기 개발 기반과 Supabase 개발 환경 연결을 구성했습니다. `/`는 `/dashboard`로 이동하며 Figma 기반 공통 App Layout, Sidebar와 데이터 미연결 상태의 Dashboard Shell을 표시합니다. 모바일 메뉴 열기/닫기와 본문 건너뛰기를 지원합니다. 비활성 메뉴와 생성 버튼은 후속 개발 대상입니다.
 
-로그인, 조직 생성, CRUD, 실제 데이터 조회, OpenAI 호출, RAG, Drive 연동은 아직 구현하지 않았습니다. DB migration은 초안이며 원격 Supabase에 적용하지 않았습니다.
+로그인, 조직 생성, CRUD, 실제 데이터 조회, OpenAI 호출, RAG, Drive 연동은 아직 구현하지 않았습니다. 초기 DB migration은 `nexus-dev`에 적용했고, 브라우저/서버 클라이언트와 세션 갱신 Proxy를 준비했습니다.
 
 ## 빠른 시작
 
@@ -28,6 +28,7 @@ npm run dev
 npm run lint
 npm run typecheck
 npm run test:db
+npm run test:config
 npm run build
 npm start
 ```
@@ -39,7 +40,7 @@ npm start
 - Next.js 16 App Router / React 19 / TypeScript strict
 - Tailwind CSS 4 / shadcn/ui 호환 컴포넌트 및 CLI 설정 / Lucide
 - Noto Sans KR: Fontsource 패키지에서 로컬 번들링
-- Supabase PostgreSQL / Auth / RLS: DB 초안과 디렉터리 준비
+- Supabase PostgreSQL / Auth / RLS: 개발 DB 연결, 생성 타입, SSR 클라이언트
 - OpenAI API: 향후 서버에서만 연동
 - Vercel + Supabase 배포 예정; 현재 배포 없음
 
@@ -56,11 +57,11 @@ src/
     common/             # StatusChip
   features/             # organizations, projects, tasks, meetings 등 도메인
   lib/
-    supabase/           # 후속 browser/server client
+    supabase/           # browser/server client, 설정 검증, 세션 Proxy
     ai/                 # 후속 서버 AI + schema validation
     utils/              # cn
-  types/                # 후속 공통 타입 / 생성 DB 타입
-supabase/migrations/    # 초기 SQL 초안
+  types/                # 공통 타입 / 실제 DB에서 생성한 타입
+supabase/migrations/    # 적용 이력을 관리하는 SQL migration
 scripts/                # DB 경계 검증
 docs/                   # 구조, DB, API, 설계 결정
 .github/                # PR / Issue 템플릿, 품질 CI
@@ -82,7 +83,8 @@ docs/                   # 구조, DB, API, 설계 결정
 | 이름 | 용도 | 현재 필수 |
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL | 아니요 |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | RLS가 적용되는 공개 클라이언트 키 | 아니요 |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | 권장 공개 클라이언트 키 | 아니요 |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 기존 anon 키 대체 설정 | 아니요 |
 | `SUPABASE_SERVICE_ROLE_KEY` | 필요한 경우에만 사용하는 서버 관리 키 | 아니요 |
 | `OPENAI_API_KEY` | 서버 AI 분석 API | 아니요 |
 
@@ -94,20 +96,21 @@ docs/                   # 구조, DB, API, 설계 결정
 
 `main`을 팀의 공통 기준 브랜치로 사용합니다. 빈 저장소 초기화를 위한 최초 기준 커밋만 예외로 생성하고, 초기 설정을 포함한 코드 변경은 작업 브랜치에서 PR로 반영합니다. 새 작업은 최신 `origin/main`에서 작업 브랜치를 만들어 시작하세요.
 
-PR CI는 lint, typecheck, DB 테스트, production build를 실행합니다. GitHub에서 PR 필수 리뷰와 필수 CI를 별도로 설정해야 합니다.
+PR CI는 lint, typecheck, DB/설정 테스트, production build를 실행합니다. GitHub에서 PR 필수 리뷰와 필수 CI를 별도로 설정해야 합니다.
 
 ## 문서 / 다음 Issue
 
+- [개발 도구 전환 및 인수인계](docs/handoff.md)
 - [Architecture](docs/architecture.md)
 - [Database](docs/database.md)
+- [Supabase 연결 및 검증](docs/supabase.md)
 - [API 및 AI 경계](docs/api.md)
 - [초기 설계 결정](docs/decisions/0001-foundation.md)
 
 권장 순서:
-1. `[SETUP] Supabase 로컬/개발 환경 연결 및 migration 검증`
-2. `[AUTH] 로그인·세션·profiles 및 Organization 생성/가입 정책`
-3. `[BE] Project CRUD와 조직별 쓰기 RLS`
-4. `[FE] Figma 기반 Project 목록/상세와 Dashboard 데이터 연결`
-5. `[BE/FE] Task → Meeting → AI 분석 schema → 확인 및 반영`
+1. `[AUTH] 로그인·세션·profiles 및 Organization 생성/가입 정책`
+2. `[BE] Project CRUD와 조직별 쓰기 RLS`
+3. `[FE] Figma 기반 Project 목록/상세와 Dashboard 데이터 연결`
+4. `[BE/FE] Task → Meeting → AI 분석 schema → 확인 및 반영`
 
 Phase 2는 Calendar/Budget/Vendor, Phase 3는 Drive/AI Assistant·RAG/Handover입니다.
