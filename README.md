@@ -1,15 +1,39 @@
 # Nexus
 
-대학 학생회의 업무와 기억을 다음 기수까지 이어주는 **Student Council OS**.
+대학 학생회의 업무와 기억을 다음 기수까지 이어주는 **Student Council OS**.  
 기존 Drive·Calendar를 대체하기보다 프로젝트, 업무, 회의, 결정사항의 맥락을 연결합니다.
 
-## 현재 범위
+---
 
-초기 개발 기반과 Supabase 개발 환경 연결을 구성했습니다. `/`는 `/dashboard`로 이동하며 Figma 기반 공통 App Layout, Sidebar와 데이터 미연결 상태의 Dashboard Shell을 표시합니다. 모바일 메뉴 열기/닫기와 본문 건너뛰기를 지원합니다. 비활성 메뉴와 생성 버튼은 후속 개발 대상입니다.
+## 🚀 현재 구현 완료 기능
 
-로그인, 조직 생성, CRUD, 실제 데이터 조회, OpenAI 호출, RAG, Drive 연동은 아직 구현하지 않았습니다. 초기 DB migration은 `nexus-dev`에 적용했고, 브라우저/서버 클라이언트와 세션 갱신 Proxy를 준비했습니다.
+Nexus는 현재 핵심 온보딩 및 업무 실행 체계가 구축되어 실제 학생회 팀원들과 협업할 수 있습니다:
 
-## 빠른 시작
+1. **인증 및 계정 관리 (`/login`, `/auth/callback`)**
+   - 이메일/비밀번호 로그인 및 소셜 로그인(Google, Kakao, Naver OAuth)
+   - 비밀번호 재설정(`forgot-password`, `reset-password`)
+   - 세션 기반 전역 경로 보호 Proxy (미인증 사용자 자동 리디렉트)
+2. **학생회 온보딩 & 운영자 심사 (`/onboarding`, `/admin`)**
+   - 새 학생회 생성 신청 (대학명, 학생회명, 신청 사유)
+   - 사이트 운영자(`is_site_admin`) 전용 승인/반려 심사 콘솔
+   - 운영자 승인 시 학생회 생성 및 신청자 총학생회장(`PRESIDENT`) 자동 임명
+   - 기존 학생회 검색 및 가입 신청, 관리자 승인 체계
+3. **프로젝트 관리 (`/projects`, `/projects/[id]`)**
+   - 상태별 필터 탭 (전체 / 진행 중 / 계획됨 / 완료됨 / 보관됨)
+   - 프로젝트 카드 그리드 (기간, 상태 칩, 설명, 업무 진척도 요약)
+   - 새 프로젝트 등록 모달, 상세 정보 수정 및 관리자 전용 삭제
+4. **업무 관리 (`/tasks`)**
+   - 학생회 실행 단위 업무(Task) 생성 및 프로젝트 연결
+   - 학생회 구성원 담당자 배정 및 마감일 관리
+   - 체크박스 클릭 즉시 상태 변경 (`TODO` ↔ `DONE`), 마감일 초과 경고
+   - 프로젝트 상세 화면 내 실시간 업무 목록 및 업무 추가 연동
+5. **통합 대시보드 (`/dashboard`)**
+   - '진행 중 프로젝트', '3일 이내 마감', '담당자 없는 업무' **100% 실데이터 연동**
+   - 지금 당장 마감이 임박한 업무 목록 및 최근 프로젝트 실시간 렌더링
+
+---
+
+## 🛠 빠른 시작
 
 Node.js 24 LTS와 npm을 사용합니다. `.nvmrc`가 팀의 기준 버전입니다.
 
@@ -22,95 +46,73 @@ cp .env.example .env.local
 npm run dev
 ```
 
-[http://localhost:3000](http://localhost:3000)을 열면 됩니다. **현재 Shell은 환경변수를 채우지 않아도 실행됩니다.**
+브라우저에서 [http://localhost:3000](http://localhost:3000)을 엽니다.
+
+### 품질 검증 스크립트
 
 ```sh
-npm run lint
-npm run typecheck
-npm run test:db
-npm run test:config
-npm run build
-npm start
+npm run lint          # ESLint 린트 검사
+npm run typecheck     # TypeScript strict 타입 검사
+npm run test:config   # Supabase 설정 안전성 검사
+npm run test:db       # PGlite 메모리 PostgreSQL RLS 및 권한 검사 (10개 테스트)
+npm run build         # Next.js 프로덕션 빌드 검사
 ```
 
-`typecheck`는 Next.js 라우트 타입 생성 후 strict TypeScript 검사를 실행합니다. `test:db`는 메모리 내 PostgreSQL(PGlite)에서 migration과 조직 분리를 확인합니다. 실제 Supabase Auth/API 통합 테스트를 대체하지 않습니다.
+---
 
-## 기술 구성
+## ⚙️ 환경 변수 (`.env.local`)
 
-- Next.js 16 App Router / React 19 / TypeScript strict
-- Tailwind CSS 4 / shadcn/ui 호환 컴포넌트 및 CLI 설정 / Lucide
-- Noto Sans KR: Fontsource 패키지에서 로컬 번들링
-- Supabase PostgreSQL / Auth / RLS: 개발 DB 연결, 생성 타입, SSR 클라이언트
-- OpenAI API: 향후 서버에서만 연동
-- Vercel + Supabase 배포 예정; 현재 배포 없음
+| 변수명 | 필수 여부 | 설명 |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | 필수 | Supabase 프로젝트 URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | 필수 | Supabase 공개 publishable 키 |
+| `NEXT_PUBLIC_SITE_URL` | 필수 | 서비스 사이트 주소 (로컬: `http://localhost:3000`, 배포: Vercel 도메인) |
+| `NEXT_PUBLIC_SOCIAL_GOOGLE` | 선택 | Google 소셜 로그인 활성화 (`true`/`false`) |
+| `NEXT_PUBLIC_SOCIAL_KAKAO` | 선택 | Kakao 소셜 로그인 활성화 (`true`/`false`) |
+| `NEXT_PUBLIC_SOCIAL_NAVER` | 선택 | Naver 소셜 로그인 활성화 (`true`/`false`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | 개발/마이그레이션 전용 | 클라이언트 노출 절대 금지, 서버 관리 키 |
 
-설치 버전은 `package-lock.json`을 기준으로 재현합니다.
+---
 
-## 폴더 구조
+## 🏛 기술 스택 및 아키텍처
+
+- **Framework**: Next.js 16 (App Router, Server Actions, React 19)
+- **Language**: TypeScript (Strict mode)
+- **Styling**: Tailwind CSS v4, shadcn/ui, Lucide Icons
+- **Database / Auth**: Supabase PostgreSQL, Row Level Security (RLS), Supabase SSR
+- **Testing**: Node.js Test Runner, PGlite (인메모리 PostgreSQL RLS 검증)
 
 ```text
 src/
-  app/                  # App Router, dashboard shell, 후속 라우트 자리
+  app/                  # App Router 경로 (/dashboard, /projects, /tasks, /onboarding, /admin, /login)
   components/
-    ui/                 # shadcn/ui 패턴 Button, Card
+    ui/                 # shadcn/ui 기반 원자 컴포넌트 (Button, Input, Card, Label)
     layout/             # AppShell, Sidebar
     common/             # StatusChip
-  features/             # organizations, projects, tasks, meetings 등 도메인
+  features/             # 도메인별 응집 (auth, organizations, projects, tasks)
+    auth/               # 로그인, 회원가입, 세션 액션 및 소셜 버튼
+    organizations/      # 온보딩, 가입/생성 신청, 관리자 심사
+    projects/           # 프로젝트 CRUD, 상태 칩, 다이얼로그
+    tasks/              # 업무 CRUD, 담당자 배정, 체크박스 토글
   lib/
-    supabase/           # browser/server client, 설정 검증, 세션 Proxy
-    ai/                 # 후속 서버 AI + schema validation
-    utils/              # cn
-  types/                # 공통 타입 / 실제 DB에서 생성한 타입
-supabase/migrations/    # 적용 이력을 관리하는 SQL migration
-scripts/                # DB 경계 검증
-docs/                   # 구조, DB, API, 설계 결정
-.github/                # PR / Issue 템플릿, 품질 CI
+    supabase/           # client, server, proxy(경로보호), env(설정검증)
+    utils/              # cn 클래스 병합
+  types/                # Database 타입 및 공통 모델 타입
+supabase/migrations/    # 버전 관리되는 SQL 마이그레이션 이력
+scripts/                # DB RLS 및 설정 자동 검증 테스트
+docs/                   # 아키텍처, 데이터베이스 스키마, 핸드오프 문서
 ```
 
-`.gitkeep`만 있는 폴더는 확장 위치를 예약하며 라우트나 기능을 생성하지 않습니다.
+---
 
-## 디자인 기준
+## 📋 로드맵
 
-[Figma Dashboard · 3:2](https://www.figma.com/design/aGiZ5xJjFH21tDgvJLALi0/?node-id=3-2)를 확인하고 적용했습니다.
-224px Sidebar, 56px Header, 32px 본문 여백, 24px 섹션 간격, 얇은 테두리, 4/6/8px 모서리, `#5b5bd6` Indigo Accent, `#f7f7f9` Sidebar와 Noto Sans KR을 사용합니다.
-
-실제 데이터가 없는 초기 단계이므로 이름·조직·통계·활동 샘플은 미연결 상태로 바꿨습니다. Figma의 `S` 로고와 학생회 OS 명칭은 제품명 Nexus / `N`으로 표시합니다. 모바일은 동일한 패턴을 접이식 메뉴와 단일 열로 확장했습니다.
-
-추가 UI는 `npx shadcn@latest add <component>`로 가져올 수 있습니다. `components.json`의 alias와 `globals.css` 토큰을 유지하고 기존 컴포넌트를 덮어쓰기 전에 차이를 확인하세요.
-
-## 환경변수
-
-| 이름 | 용도 | 현재 필수 |
-| --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL | 아니요 |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | 권장 공개 클라이언트 키 | 아니요 |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 기존 anon 키 대체 설정 | 아니요 |
-| `SUPABASE_SERVICE_ROLE_KEY` | 필요한 경우에만 사용하는 서버 관리 키 | 아니요 |
-| `OPENAI_API_KEY` | 서버 AI 분석 API | 아니요 |
-
-실제 값은 `.env.local`에만 보관합니다. 마지막 두 키는 절대 `NEXT_PUBLIC_`로 노출하지 않습니다. 일반 사용자 요청에 service-role 키를 사용하지 않습니다.
-
-## 협업
-
-작업 전 [AGENTS.md](AGENTS.md)를 읽습니다. Issue → 작업 브랜치 → 개발/검증 → Commit → Push → PR → Review → Merge 순서를 따릅니다. main 직접 작업·push 금지, develop 미사용.
-
-`main`을 팀의 공통 기준 브랜치로 사용합니다. 빈 저장소 초기화를 위한 최초 기준 커밋만 예외로 생성하고, 초기 설정을 포함한 코드 변경은 작업 브랜치에서 PR로 반영합니다. 새 작업은 최신 `origin/main`에서 작업 브랜치를 만들어 시작하세요.
-
-PR CI는 lint, typecheck, DB/설정 테스트, production build를 실행합니다. GitHub에서 PR 필수 리뷰와 필수 CI를 별도로 설정해야 합니다.
-
-## 문서 / 다음 Issue
-
-- [개발 도구 전환 및 인수인계](docs/handoff.md)
-- [Architecture](docs/architecture.md)
-- [Database](docs/database.md)
-- [Supabase 연결 및 검증](docs/supabase.md)
-- [API 및 AI 경계](docs/api.md)
-- [초기 설계 결정](docs/decisions/0001-foundation.md)
-
-권장 순서:
-1. `[AUTH] 로그인·세션·profiles 및 Organization 생성/가입 정책`
-2. `[BE] Project CRUD와 조직별 쓰기 RLS`
-3. `[FE] Figma 기반 Project 목록/상세와 Dashboard 데이터 연결`
-4. `[BE/FE] Task → Meeting → AI 분석 schema → 확인 및 반영`
-
-Phase 2는 Calendar/Budget/Vendor, Phase 3는 Drive/AI Assistant·RAG/Handover입니다.
+- [x] **Phase 1-A**: 개발 기반 및 App Layout, Figma Dashboard Shell
+- [x] **Phase 1-B**: Supabase Auth (이메일 및 소셜 로그인) & 전역 세션 경로 보호
+- [x] **Phase 1-C**: 학생회 조직 온보딩 (생성 신청, 운영자 승인, 가입 신청)
+- [x] **Phase 1-D**: 프로젝트(Projects) CRUD 및 대시보드 실데이터 연동
+- [x] **Phase 1-E**: 업무 관리(Tasks) CRUD 및 담당자 배정, 체크리스트 연동
+- [ ] **Phase 1-F**: 회의록(Meetings) & 결정사항(Decisions) 도메인 구축
+- [ ] **Phase 1-G**: AI 회의록 분석 (안건 요약, 태스크/결정사항 후보 추출 및 사용자 승인)
+- [ ] **Phase 2**: 캘린더 연동, 예산(Budget), 제휴/업체(Vendor) 관리
+- [ ] **Phase 3**: Google Drive 연동, 인수인계 RAG 어시스턴트
