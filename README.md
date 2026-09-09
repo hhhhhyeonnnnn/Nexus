@@ -88,6 +88,12 @@ npm run build         # Next.js 프로덕션 빌드 검사
   - `https://nexus-kappa-two-10.vercel.app/auth/callback`
   - `http://localhost:3000/**`
 
+### ⚡ 배포 및 응답 속도 최적화
+- **Vercel 서울 리전 (`icn1`)**: `vercel.json`을 통해 Vercel Serverless Function을 서울 리전(`icn1`)으로 지정하여 Supabase 서울 DB(`ap-northeast-2`)와의 네트워크 왕복 지연(RTT)을 200ms ➔ 2~5ms 수준으로 극대화 단축.
+- **React `cache()`**: 동일 렌더 주기 내 중복 DB 쿼리(현재 사용자 및 학생회 소속 조회)를 1회로 자동 병합.
+- **미들웨어 쿠키 최적화**: 조직 소속 확인 플래그 쿠키(`nexus-has-org`)를 통해 매 페이지 이동 시 불필요한 DB 조회를 제거.
+- **콜드 스타트 방지 (Keep-Warm)**: `.github/workflows/keep-warm.yml`의 10분 주기 스케줄러가 `/api/ping` 엔드포인트를 주기적으로 호출하여 Vercel 서버리스 인스턴스를 상시 가동(Warm) 상태로 유지.
+
 ---
 
 ## 🏛 기술 스택 및 아키텍처

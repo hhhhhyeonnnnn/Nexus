@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseConfig } from "@/lib/supabase/env";
@@ -16,7 +17,7 @@ export type ActionState = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-export async function getCurrentUserOrganization() {
+export const getCurrentUserOrganization = cache(async () => {
   if (!getSupabaseConfig()) return null;
 
   const supabase = await createClient();
@@ -40,7 +41,7 @@ export async function getCurrentUserOrganization() {
     role: member.role,
     organization: member.organizations,
   };
-}
+});
 
 // ---------------------------------------------------------------------------
 // Queries
