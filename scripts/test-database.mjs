@@ -5,7 +5,8 @@ import { PGlite } from "@electric-sql/pglite";
 
 const db = new PGlite();
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const orgTables = ["organizations", "organization_members", "projects", "tasks", "meetings", "decisions", "events", "budgets", "vendors", "files"];
+const tenantTables = ["organization_members", "projects", "tasks", "meetings", "decisions", "events", "budgets", "vendors", "files"];
+const allTables = ["organizations", ...tenantTables, "profiles", "organization_creation_requests", "organization_join_requests"];
 
 before(async () => {
   // Local PostgreSQL harness only; Supabase supplies these roles and auth objects.
@@ -19,7 +20,11 @@ before(async () => {
     grant usage on schema auth to authenticated;
     grant execute on function auth.uid() to authenticated;
   `);
+
   await db.exec(await readFile(new URL("../supabase/migrations/20260909000000_initial_schema.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../supabase/migrations/20260909100000_auth_write_policies.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../supabase/migrations/20260909200000_org_onboarding.sql", import.meta.url), "utf8"));
+
   for (const n of [1, 2]) {
     await db.exec(`
       insert into auth.users values ('${id(n)}');
@@ -36,52 +41,84 @@ before(async () => {
       insert into public.files(organization_id, project_id, title, external_url) values ('${id(n)}', '${id(n)}', 'Document', 'https://example.test/document');
     `);
   }
+
+  // Set user 1 as site admin for testing admin workflows
+  await db.exec(`update public.profiles set is_site_admin = true where id = '${id(1)}'`);
 });
+
 after(async () => { await db.close(); });
 
-test("all 11 tables have RLS enabled", async () => {
+test("all 13 tables have RLS enabled", async () => {
   const { rows } = await db.query("select relname, relrowsecurity from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r'");
-  assert.equal(rows.length, 11);
+  assert.equal(rows.length, 13);
   assert.ok(rows.every((row) => row.relrowsecurity));
 });
 
-test("each authenticated member sees only their own organization and profile", async () => {
+test("each authenticated member sees only their own tenant data and profile, but can browse org directory", async () => {
   for (const n of [1, 2]) {
     await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(n)}';`);
     try {
-      for (const table of orgTables) {
+      for (const table of tenantTables) {
         const { rows } = await db.query(`select * from public.${table}`);
         assert.equal(rows.length, 1, table);
-        assert.equal(rows[0][table === "organizations" ? "id" : "organization_id"], id(n), table);
+        assert.equal(rows[0]["organization_id"], id(n), table);
       }
+      // Organizations can be browsed by all authenticated users to request join
+      const { rows: orgRows } = await db.query("select * from public.organizations");
+      assert.equal(orgRows.length, 2);
+
       const { rows } = await db.query("select id from public.profiles");
       assert.deepEqual(rows, [{ id: id(n) }]);
     } finally { await db.exec("reset role"); }
   }
 });
 
-test("authenticated nonmembers cannot read organization data", async () => {
+test("authenticated nonmembers cannot read tenant data", async () => {
   await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(99)}';`);
   try {
-    for (const table of orgTables) {
+    for (const table of tenantTables) {
       const { rows } = await db.query(`select * from public.${table}`);
       assert.equal(rows.length, 0, table);
     }
   } finally { await db.exec("reset role"); }
 });
 
-test("anonymous reads and authenticated writes are denied", async () => {
+test("anonymous reads are denied for all tables", async () => {
   await db.exec("set role anon");
   try {
-    for (const table of [...orgTables, "profiles"]) {
+    for (const table of allTables) {
       await assert.rejects(db.query(`select * from public.${table}`), /permission denied/);
     }
   } finally { await db.exec("reset role"); }
+});
+
+test("non-admin member cannot promote self or insert direct tasks", async () => {
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+  try {
+    await assert.rejects(db.exec(`insert into public.tasks(organization_id, title) values ('${id(2)}', 'Unconfirmed AI task')`), /permission denied/);
+    // User 2 (MEMBER) cannot promote self to PRESIDENT
+    const { rowCount } = await db.query(`update public.organization_members set role = 'PRESIDENT' where user_id = '${id(2)}'`);
+    assert.equal(rowCount, 0); // blocked by RLS check (user_id <> auth.uid() or non-admin)
+    await assert.rejects(db.exec("delete from public.projects"), /permission denied/);
+  } finally { await db.exec("reset role"); }
+});
+
+test("site admin can create org while regular user is denied", async () => {
+  // Non-site-admin (user 2) cannot insert organizations
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+  try {
+    await assert.rejects(
+      db.exec(`insert into public.organizations(name, university_name) values ('Illegal Org', 'Univ')`),
+      /row-level security policy/,
+    );
+  } finally { await db.exec("reset role"); }
+
+  // Site admin (user 1) can insert organizations
   await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(1)}';`);
   try {
-    await assert.rejects(db.exec(`insert into public.tasks(organization_id, title) values ('${id(1)}', 'Unconfirmed AI task')`), /permission denied/);
-    await assert.rejects(db.exec("update public.organization_members set role = 'PRESIDENT'"), /permission denied/);
-    await assert.rejects(db.exec("delete from public.projects"), /permission denied/);
+    await db.exec(`insert into public.organizations(id, name, university_name) values ('${id(10)}', 'Approved Org', 'Univ')`);
+    const { rows } = await db.query(`select name from public.organizations where id = '${id(10)}'`);
+    assert.equal(rows[0].name, "Approved Org");
   } finally { await db.exec("reset role"); }
 });
 

@@ -259,6 +259,112 @@ export type Database = {
           },
         ]
       }
+      organization_creation_requests: {
+        Row: {
+          created_at: string
+          id: string
+          org_name: string
+          reason: string
+          requester_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: "pending" | "approved" | "rejected"
+          university_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          org_name: string
+          reason?: string
+          requester_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: "pending" | "approved" | "rejected"
+          university_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          org_name?: string
+          reason?: string
+          requester_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: "pending" | "approved" | "rejected"
+          university_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_creation_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_creation_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_join_requests: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          organization_id: string
+          requester_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: "pending" | "approved" | "rejected"
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string
+          organization_id: string
+          requester_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: "pending" | "approved" | "rejected"
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          organization_id?: string
+          requester_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: "pending" | "approved" | "rejected"
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_join_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_join_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_join_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           organization_id: string
@@ -318,18 +424,21 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          is_site_admin: boolean
           name: string
         }
         Insert: {
           created_at?: string
           email: string
           id: string
+          is_site_admin?: boolean
           name: string
         }
         Update: {
           created_at?: string
           email?: string
           id?: string
+          is_site_admin?: boolean
           name?: string
         }
         Relationships: []
