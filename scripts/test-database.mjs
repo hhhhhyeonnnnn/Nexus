@@ -27,6 +27,7 @@ before(async () => {
   await db.exec(await readFile(new URL("../supabase/migrations/20260909300000_projects_write_policies.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260909400000_tasks_write_policies.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260909500000_profiles_shared_read_policies.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../supabase/migrations/20260909600000_calendar_vendors_finance.sql", import.meta.url), "utf8"));
 
   for (const n of [1, 2]) {
     await db.exec(`
@@ -280,6 +281,97 @@ test("site admin can view all profiles", async () => {
   } finally {
     await db.exec("reset role");
     await db.exec(`update public.profiles set is_site_admin = false where id = '${id(1)}'`);
+  }
+});
+
+test("organization member can create, update, and delete events within own org only", async () => {
+  // Member 2 creates event in Org 2 -> SUCCESS
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+  try {
+    await db.exec(`
+      insert into public.events(id, organization_id, title, start_at, end_at)
+      values ('${id(40)}', '${id(2)}', 'Autumn Festival', '2026-10-01 10:00:00+09', '2026-10-02 20:00:00+09')
+    `);
+    const { rows } = await db.query(`select title from public.events where id = '${id(40)}'`);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].title, "Autumn Festival");
+
+    // Member 2 tries to insert event in Org 1 -> REJECTED
+    await assert.rejects(
+      db.exec(`insert into public.events(organization_id, title, start_at, end_at) values ('${id(1)}', 'Cross-org Event', now(), now())`),
+      /row-level security policy/,
+    );
+
+    // Member 2 updates own event -> SUCCESS
+    await db.exec(`update public.events set title = 'Festival Day 1' where id = '${id(40)}'`);
+    const { rows: updatedRows } = await db.query(`select title from public.events where id = '${id(40)}'`);
+    assert.equal(updatedRows[0].title, "Festival Day 1");
+
+    // Member 2 deletes own event -> SUCCESS
+    const { rowCount: deleted } = await db.query(`delete from public.events where id = '${id(40)}'`);
+    assert.equal(deleted, 1);
+  } finally { await db.exec("reset role"); }
+});
+
+test("organization member can create and update vendors, but only admin can delete", async () => {
+  // Member 2 creates vendor in Org 2 -> SUCCESS
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+  try {
+    await db.exec(`
+      insert into public.vendors(id, organization_id, name, category, phone, rating)
+      values ('${id(50)}', '${id(2)}', 'Hanbit Print', '인쇄/홍보', '010-1234-5678', 5)
+    `);
+    const { rows } = await db.query(`select name from public.vendors where id = '${id(50)}'`);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].name, "Hanbit Print");
+
+    // Member 2 (regular MEMBER) tries to delete vendor -> REJECTED (0 rows deleted)
+    const { rowCount } = await db.query(`delete from public.vendors where id = '${id(50)}'`);
+    assert.equal(rowCount, 0);
+
+    // Promote Member 2 to ADMIN of Org 2
+    await db.exec("reset role");
+    await db.exec(`update public.organization_members set role = 'ADMIN' where organization_id = '${id(2)}' and user_id = '${id(2)}'`);
+    await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+
+    // Admin Member 2 deletes vendor -> SUCCESS
+    const { rowCount: adminDeleted } = await db.query(`delete from public.vendors where id = '${id(50)}'`);
+    assert.equal(adminDeleted, 1);
+  } finally {
+    await db.exec("reset role");
+    await db.exec(`update public.organization_members set role = 'MEMBER' where organization_id = '${id(2)}' and user_id = '${id(2)}'`);
+  }
+});
+
+test("organization member can create and update budgets/ledger, but only admin can delete", async () => {
+  // Member 2 creates budget/ledger in Org 2 -> SUCCESS
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+  try {
+    await db.exec(`
+      insert into public.budgets(id, organization_id, title, category, type, actual_amount, transaction_date)
+      values ('${id(60)}', '${id(2)}', 'Snack Expense', '복지비', 'EXPENSE', 150000, '2026-09-10')
+    `);
+    const { rows } = await db.query(`select title, type, actual_amount from public.budgets where id = '${id(60)}'`);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].title, "Snack Expense");
+    assert.equal(rows[0].type, "EXPENSE");
+    assert.equal(Number(rows[0].actual_amount), 150000);
+
+    // Member 2 (regular MEMBER) tries to delete budget -> REJECTED (0 rows deleted)
+    const { rowCount } = await db.query(`delete from public.budgets where id = '${id(60)}'`);
+    assert.equal(rowCount, 0);
+
+    // Promote Member 2 to ADMIN of Org 2
+    await db.exec("reset role");
+    await db.exec(`update public.organization_members set role = 'ADMIN' where organization_id = '${id(2)}' and user_id = '${id(2)}'`);
+    await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+
+    // Admin Member 2 deletes budget -> SUCCESS
+    const { rowCount: adminDeleted } = await db.query(`delete from public.budgets where id = '${id(60)}'`);
+    assert.equal(adminDeleted, 1);
+  } finally {
+    await db.exec("reset role");
+    await db.exec(`update public.organization_members set role = 'MEMBER' where organization_id = '${id(2)}' and user_id = '${id(2)}'`);
   }
 });
 
