@@ -218,6 +218,17 @@ export async function createTask(
     return { error: "업무 등록 중 오류가 발생했습니다: " + error.message };
   }
 
+  if (assigneeId) {
+    await supabase.from("notifications").insert({
+      organization_id: membership.organizationId,
+      user_id: assigneeId,
+      title: "새 업무 배정",
+      message: `새로운 업무 [${title.trim()}]가 배정되었습니다.`,
+      type: "TASK",
+      link_url: "/tasks",
+    });
+  }
+
   revalidatePath("/tasks");
   revalidatePath("/dashboard");
   if (projectId) {

@@ -5,7 +5,7 @@ import { PGlite } from "@electric-sql/pglite";
 
 const db = new PGlite();
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const tenantTables = ["organization_members", "projects", "tasks", "meetings", "decisions", "events", "budgets", "vendors", "files", "departments", "event_forms", "form_submissions", "announcements", "petitions", "polls", "poll_votes", "approvals", "approval_logs"];
+const tenantTables = ["organization_members", "projects", "tasks", "meetings", "decisions", "events", "budgets", "vendors", "files", "departments", "event_forms", "form_submissions", "announcements", "petitions", "polls", "poll_votes", "approvals", "approval_logs", "notifications"];
 const allTables = ["organizations", ...tenantTables, "profiles", "organization_creation_requests", "organization_join_requests"];
 
 before(async () => {
@@ -33,6 +33,7 @@ before(async () => {
   await db.exec(await readFile(new URL("../supabase/migrations/20260910200000_departments_and_org_chart.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260910300000_event_forms_and_tickets.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260910400000_community_approvals_audit.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../supabase/migrations/20260910500000_notifications.sql", import.meta.url), "utf8"));
 
   for (const n of [1, 2]) {
     await db.exec(`
@@ -57,15 +58,16 @@ before(async () => {
       insert into public.poll_votes(id, organization_id, poll_id, voter_identifier, selected_option_id) values ('${id(n)}', '${id(n)}', '${id(n)}', 'STUDENT_${n}', 'opt1');
       insert into public.approvals(id, organization_id, title, content, applicant_id) values ('${id(n)}', '${id(n)}', 'Approval ${n}', 'Details', '${id(n)}');
       insert into public.approval_logs(id, organization_id, approval_id, actor_id, actor_name, action) values ('${id(n)}', '${id(n)}', '${id(n)}', '${id(n)}', 'Admin', 'SUBMIT');
+      insert into public.notifications(id, organization_id, user_id, title, message) values ('${id(n)}', '${id(n)}', '${id(n)}', 'Alert ${n}', 'New task assigned');
     `);
   }
 });
 
 after(async () => { await db.close(); });
 
-test("all 22 tables have RLS enabled", async () => {
+test("all 23 tables have RLS enabled", async () => {
   const { rows } = await db.query("select relname, relrowsecurity from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r'");
-  assert.equal(rows.length, 22);
+  assert.equal(rows.length, 23);
   assert.ok(rows.every((row) => row.relrowsecurity));
 });
 
@@ -713,6 +715,28 @@ test("approvals workflow isolates tenant data, requires member role, and records
   } finally {
     await db.exec("reset role");
     await db.exec(`delete from public.approvals where id = '${id(95)}'`);
+  }
+});
+
+test("notifications are isolated to recipient user, and user can mark them as read", async () => {
+  // Member 1 reads own notification
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(1)}';`);
+  try {
+    const { rows } = await db.query("select id, title, is_read from public.notifications");
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].title, "Alert 1");
+    assert.equal(rows[0].is_read, false);
+
+    // Member 1 marks as read
+    await db.query(`update public.notifications set is_read = true where id = '${id(1)}'`);
+    const { rows: updated } = await db.query(`select is_read from public.notifications where id = '${id(1)}'`);
+    assert.equal(updated[0].is_read, true);
+
+    // Member 1 cannot see Member 2's notification
+    const { rows: crossRows } = await db.query(`select * from public.notifications where id = '${id(2)}'`);
+    assert.equal(crossRows.length, 0);
+  } finally {
+    await db.exec("reset role");
   }
 });
 

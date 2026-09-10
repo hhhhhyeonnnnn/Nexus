@@ -27,8 +27,9 @@
 | poll_votes | 캠퍼스 투표 참여 기록 (투표ID, 학번/고유식별자, 선택옵션ID, 1인 1표 제약) |
 | approvals | 다단계 전자결재 (제목, 유형: EXPENSE/EVENT/GENERAL, 금액, 본문, 결재선 jsonb, 상태) |
 | approval_logs | 전자결재 이력 감사 로그 (결재ID, 행위자, 액션: SUBMIT/APPROVE_STEP/FINAL_APPROVE/REJECT, 코멘트) |
+| notifications | 학생회 활동 및 결재 알림 (수신자, 제목, 메시지, 유형, 링크, 읽음 여부) |
 
-전체 22개 테이블입니다 (조직 생성/가입 신청 테이블 포함). UUID PK는 `gen_random_uuid()`를 사용합니다. 프로젝트 및 부서에 속하지 않은 조직 업무도 허용하도록 `project_id`, `department_id`는 nullable입니다. 회의/결정 같은 조직 기록은 일반 삭제 시 참조 무결성이 유지되도록 FK의 기본 NO ACTION을 사용합니다. 부서 삭제 시 소속 구성원/업무/예산의 부서 정보는 ON DELETE SET NULL로 보존됩니다. 신청 폼 삭제 시 연관 신청서 및 티켓은 ON DELETE CASCADE로 함께 정리됩니다. 공지사항, 건의함, 투표는 비로그인 일반 학생도 접근 가능한 공개 RLS 정책을 갖추고 있습니다.
+전체 23개 테이블입니다 (조직 생성/가입 신청 테이블 포함). UUID PK는 `gen_random_uuid()`를 사용합니다. 프로젝트 및 부서에 속하지 않은 조직 업무도 허용하도록 `project_id`, `department_id`는 nullable입니다. 회의/결정 같은 조직 기록은 일반 삭제 시 참조 무결성이 유지되도록 FK의 기본 NO ACTION을 사용합니다. 부서 삭제 시 소속 구성원/업무/예산의 부서 정보는 ON DELETE SET NULL로 보존됩니다. 신청 폼 삭제 시 연관 신청서 및 티켓은 ON DELETE CASCADE로 함께 정리됩니다. 공지사항, 건의함, 투표는 비로그인 일반 학생도 접근 가능한 공개 RLS 정책을 갖추고 있습니다. 알림은 수신자 본인만 접근 가능한 엄격한 RLS 정책을 갖추고 있습니다.
 
 ## 타입과 제약
 
