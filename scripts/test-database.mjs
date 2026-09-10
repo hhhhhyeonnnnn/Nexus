@@ -5,7 +5,7 @@ import { PGlite } from "@electric-sql/pglite";
 
 const db = new PGlite();
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const tenantTables = ["organization_members", "projects", "tasks", "meetings", "decisions", "events", "budgets", "vendors", "files", "departments", "event_forms", "form_submissions"];
+const tenantTables = ["organization_members", "projects", "tasks", "meetings", "decisions", "events", "budgets", "vendors", "files", "departments", "event_forms", "form_submissions", "announcements", "petitions", "polls", "poll_votes", "approvals", "approval_logs"];
 const allTables = ["organizations", ...tenantTables, "profiles", "organization_creation_requests", "organization_join_requests"];
 
 before(async () => {
@@ -32,6 +32,7 @@ before(async () => {
   await db.exec(await readFile(new URL("../supabase/migrations/20260910100000_meetings_ai_summary.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260910200000_departments_and_org_chart.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260910300000_event_forms_and_tickets.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../supabase/migrations/20260910400000_community_approvals_audit.sql", import.meta.url), "utf8"));
 
   for (const n of [1, 2]) {
     await db.exec(`
@@ -50,15 +51,21 @@ before(async () => {
       insert into public.files(organization_id, project_id, title, external_url) values ('${id(n)}', '${id(n)}', 'Document', 'https://example.test/document');
       insert into public.event_forms(id, organization_id, title, category, status) values ('${id(n)}', '${id(n)}', 'Festival Form ${n}', 'BOOTH', 'OPEN');
       insert into public.form_submissions(id, organization_id, form_id, applicant_name, applicant_phone, ticket_code) values ('${id(n)}', '${id(n)}', '${id(n)}', 'Applicant ${n}', '010-1234-567${n}', 'TKT-2026-TEST0${n}');
+      insert into public.announcements(id, organization_id, title, content, author_id) values ('${id(n)}', '${id(n)}', 'Announcement ${n}', 'Content', '${id(n)}');
+      insert into public.petitions(id, organization_id, title, content, author_name) values ('${id(n)}', '${id(n)}', 'Petition ${n}', 'Content', 'Student');
+      insert into public.polls(id, organization_id, title, options) values ('${id(n)}', '${id(n)}', 'Poll ${n}', '[{"id":"opt1","text":"Yes","vote_count":0},{"id":"opt2","text":"No","vote_count":0}]'::jsonb);
+      insert into public.poll_votes(id, organization_id, poll_id, voter_identifier, selected_option_id) values ('${id(n)}', '${id(n)}', '${id(n)}', 'STUDENT_${n}', 'opt1');
+      insert into public.approvals(id, organization_id, title, content, applicant_id) values ('${id(n)}', '${id(n)}', 'Approval ${n}', 'Details', '${id(n)}');
+      insert into public.approval_logs(id, organization_id, approval_id, actor_id, actor_name, action) values ('${id(n)}', '${id(n)}', '${id(n)}', '${id(n)}', 'Admin', 'SUBMIT');
     `);
   }
 });
 
 after(async () => { await db.close(); });
 
-test("all 16 tables have RLS enabled", async () => {
+test("all 22 tables have RLS enabled", async () => {
   const { rows } = await db.query("select relname, relrowsecurity from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r'");
-  assert.equal(rows.length, 16);
+  assert.equal(rows.length, 22);
   assert.ok(rows.every((row) => row.relrowsecurity));
 });
 
@@ -93,7 +100,8 @@ test("authenticated nonmembers cannot read tenant data", async () => {
 
 test("anonymous reads are denied for all private tables", async () => {
   await db.exec("set role anon");
-  const privateTables = allTables.filter((t) => t !== "event_forms" && t !== "form_submissions");
+  const publicTables = ["event_forms", "form_submissions", "announcements", "petitions", "polls", "poll_votes"];
+  const privateTables = allTables.filter((t) => !publicTables.includes(t));
   try {
     for (const table of privateTables) {
       await assert.rejects(db.query(`select * from public.${table}`), /permission denied/);
@@ -594,3 +602,117 @@ test("event_forms and form_submissions RLS: member access, anon open form submis
     await db.exec(`delete from public.event_forms where id in ('${id(80)}', '${id(81)}')`);
   }
 });
+
+test("community policies isolate tenant data, allow public feed read, allow anon petition and poll voting", async () => {
+  // 1. Member 2 creates a public announcement and a private announcement
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+  try {
+    await db.query(`
+      insert into public.announcements(id, organization_id, title, content, is_public, is_pinned)
+      values ('${id(90)}', '${id(2)}', 'Public Notice', 'Everyone can read', true, true),
+             ('${id(91)}', '${id(2)}', 'Internal Notice', 'Members only', false, false)
+    `);
+  } finally {
+    await db.exec("reset role");
+  }
+
+  // 2. Anonymous user checks announcements -> Sees only public
+  await db.exec("set role anon");
+  try {
+    const { rows: anonNotices } = await db.query(`select id, title from public.announcements where id in ('${id(90)}', '${id(91)}')`);
+    assert.equal(anonNotices.length, 1);
+    assert.equal(anonNotices[0].id, id(90));
+
+    // 3. Anonymous user submits a secret petition
+    await db.query(`
+      insert into public.petitions(id, organization_id, title, content, author_name, is_secret)
+      values ('${id(92)}', '${id(2)}', 'Secret Suggestion', 'Please fix heating', 'Student A', true)
+    `);
+
+    // Anonymous cannot read secret petition
+    const { rows: secretCheck } = await db.query(`select id from public.petitions where id = '${id(92)}'`);
+    assert.equal(secretCheck.length, 0);
+
+    // 4. Anonymous votes on open poll
+    await db.query(`
+      insert into public.poll_votes(id, organization_id, poll_id, voter_identifier, selected_option_id)
+      values ('${id(93)}', '${id(2)}', '${id(2)}', 'STUDENT_ANON_1', 'opt2')
+    `);
+
+    // Duplicate vote with same identifier FAILS
+    await assert.rejects(
+      async () => {
+        await db.query(`
+          insert into public.poll_votes(id, organization_id, poll_id, voter_identifier, selected_option_id)
+          values ('${id(94)}', '${id(2)}', '${id(2)}', 'STUDENT_ANON_1', 'opt1')
+        `);
+      },
+      /duplicate key value violates unique constraint/i
+    );
+  } finally {
+    await db.exec("reset role");
+  }
+
+  // 5. Member 2 sees secret petition and answers it
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+  try {
+    const { rows: memberPetitions } = await db.query(`select id, is_secret from public.petitions where id = '${id(92)}'`);
+    assert.equal(memberPetitions.length, 1);
+    assert.equal(memberPetitions[0].is_secret, true);
+
+    await db.query(`
+      update public.petitions
+      set status = 'ANSWERED', official_answer = 'Heating issue inspected.', answered_at = now()
+      where id = '${id(92)}'
+    `);
+    const { rows: answeredCheck } = await db.query(`select status, official_answer from public.petitions where id = '${id(92)}'`);
+    assert.equal(answeredCheck[0].status, "ANSWERED");
+  } finally {
+    await db.exec("reset role");
+    await db.exec(`delete from public.announcements where id in ('${id(90)}', '${id(91)}')`);
+    await db.exec(`delete from public.petitions where id = '${id(92)}'`);
+    await db.exec(`delete from public.poll_votes where id = '${id(93)}'`);
+  }
+});
+
+test("approvals workflow isolates tenant data, requires member role, and records approval steps", async () => {
+  // 1. Non-member cannot access approvals
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(99)}';`);
+  try {
+    const { rows } = await db.query("select * from public.approvals");
+    assert.equal(rows.length, 0);
+  } finally {
+    await db.exec("reset role");
+  }
+
+  // 2. Member 1 creates approval document
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(1)}';`);
+  try {
+    await db.query(`
+      insert into public.approvals(id, organization_id, title, type, amount, content, applicant_id, current_step, total_steps, steps)
+      values ('${id(95)}', '${id(1)}', 'Spring Festival Snack Expense', 'EXPENSE', 450000, 'Purchase snacks', '${id(1)}', 1, 2, '[{"step":1,"role":"HEAD","status":"PENDING"},{"step":2,"role":"PRESIDENT","status":"PENDING"}]'::jsonb)
+    `);
+
+    // Step 1 approval & log
+    await db.query(`
+      update public.approvals
+      set current_step = 2, steps = '[{"step":1,"role":"HEAD","status":"APPROVED"},{"step":2,"role":"PRESIDENT","status":"PENDING"}]'::jsonb
+      where id = '${id(95)}'
+    `);
+    await db.query(`
+      insert into public.approval_logs(id, organization_id, approval_id, actor_id, actor_name, action, comment)
+      values ('${id(96)}', '${id(1)}', '${id(95)}', '${id(1)}', 'Department Head', 'APPROVE_STEP', 'Budget confirmed')
+    `);
+
+    const { rows: appCheck } = await db.query(`select current_step, amount from public.approvals where id = '${id(95)}'`);
+    assert.equal(appCheck[0].current_step, 2);
+    assert.equal(Number(appCheck[0].amount), 450000);
+
+    const { rows: logCheck } = await db.query(`select action, comment from public.approval_logs where id = '${id(96)}'`);
+    assert.equal(logCheck[0].action, "APPROVE_STEP");
+  } finally {
+    await db.exec("reset role");
+    await db.exec(`delete from public.approvals where id = '${id(95)}'`);
+  }
+});
+

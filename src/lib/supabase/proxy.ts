@@ -18,7 +18,7 @@ import type { Database } from "@/types/database";
 // ---------------------------------------------------------------------------
 
 const AUTH_PATHS = ["/login", "/forgot-password", "/reset-password"];
-const ORG_PATHS = ["/dashboard", "/projects", "/tasks", "/calendar", "/meetings", "/finance", "/vendors", "/members", "/forms"];
+const ORG_PATHS = ["/dashboard", "/projects", "/tasks", "/calendar", "/meetings", "/finance", "/vendors", "/members", "/forms", "/approvals", "/community"];
 const PROTECTED_PATHS = [...ORG_PATHS, "/onboarding", "/admin"];
 
 function isAuthPath(pathname: string) {
