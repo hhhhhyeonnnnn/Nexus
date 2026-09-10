@@ -225,6 +225,7 @@ export type Database = {
       }
       meetings: {
         Row: {
+          attendees: string | null
           content: string
           created_at: string
           id: string
@@ -234,6 +235,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          attendees?: string | null
           content?: string
           created_at?: string
           id?: string
@@ -243,6 +245,7 @@ export type Database = {
           title: string
         }
         Update: {
+          attendees?: string | null
           content?: string
           created_at?: string
           id?: string

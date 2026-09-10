@@ -51,6 +51,11 @@ Nexus는 현재 핵심 온보딩 및 업무 실행 체계가 구축되어 실제
    - 요약 통계 KPI: 현재 잔액(총수입 - 총지출), 총 수입, 총 지출, 책정 예산 대비 집행률 프로그레스 바
    - 수입(INCOME) / 지출(EXPENSE) 거래 등록 모달 (금액, 거래일자, 카테고리, 관련 프로젝트, 거래처, 영수증 링크)
    - 구분별(전체/지출/수입)·카테고리별 필터링, 실시간 검색, 거래 내역 수정/삭제
+10. **문서 및 회의록 & 결정사항 아카이브 (`/meetings`, `/meetings/[id]`)**
+   - 학생회 정기/임시 회의록 작성 (제목, 일시, 참석자, 본문 안건/기록, 연관 프로젝트) 및 수정/삭제
+   - 회의록 상세 페이지 본문 뷰어 및 해당 회의에서 도출된 핵심 결정사항(Decisions) 등록·조회
+   - **결정사항(Decisions) 아카이브 탭**: 회의에서 확정된 중요 의결 사항(제목, 내용, 사유/배경, 일시, 연관 회의/프로젝트)을 구조화하여 다음 기수까지 영구 보존
+   - 프로젝트별 드롭다운 필터링 및 제목/본문/참석자/사유 실시간 검색 지원
 
 ---
 
@@ -75,7 +80,7 @@ npm run dev
 npm run lint          # ESLint 린트 검사
 npm run typecheck     # TypeScript strict 타입 검사
 npm run test:config   # Supabase 설정 안전성 검사
-npm run test:db       # PGlite 메모리 PostgreSQL RLS 및 권한 검사 (16개 테스트)
+npm run test:db       # PGlite 메모리 PostgreSQL RLS 및 권한 검사 (18개 테스트)
 npm run build         # Next.js 프로덕션 빌드 검사
 ```
 
@@ -120,17 +125,19 @@ npm run build         # Next.js 프로덕션 빌드 검사
 
 ```text
 src/
-  app/                  # App Router 경로 (/dashboard, /projects, /tasks, /calendar, /finance, /vendors, /members, /onboarding, /admin, /login)
+  app/                  # App Router 경로 (/dashboard, /projects, /tasks, /calendar, /meetings, /finance, /vendors, /members, /onboarding, /admin, /login)
   components/
     ui/                 # shadcn/ui 기반 원자 컴포넌트 (Button, Input, Card, Label)
     layout/             # AppShell, Sidebar
     common/             # StatusChip
-  features/             # 도메인별 응집 (auth, organizations, projects, tasks, calendar, vendors, finance, members)
+  features/             # 도메인별 응집 (auth, organizations, projects, tasks, calendar, meetings, decisions, vendors, finance, members)
     auth/               # 로그인, 회원가입, 세션 액션 및 소셜 버튼
     organizations/      # 온보딩, 가입/생성 신청, 관리자 심사
     projects/           # 프로젝트 CRUD, 상태 칩, 다이얼로그
     tasks/              # 업무 CRUD, 담당자 배정, 체크박스 토글
     calendar/           # 행사·일정 통합 월간 캘린더, 일정 등록/삭제
+    meetings/           # 회의록 작성/상세/수정/삭제, 본문 뷰어
+    decisions/          # 핵심 결정사항 등록, 회의/프로젝트 연계, 아카이브
     vendors/            # 제휴·협력 업체 관리, 카테고리 필터, 평점, 누적 거래액
     finance/            # 수입·지출 회계 장부, 잔액/예산 KPI, 영수증 증빙
     members/            # 구성원 목록, 가입 승인/반려, 권한 관리, 닉네임 수정
@@ -153,6 +160,6 @@ docs/                   # 아키텍처, 데이터베이스 스키마, 핸드오�
 - [x] **Phase 1-D**: 프로젝트(Projects) CRUD 및 대시보드 실데이터 연동
 - [x] **Phase 1-E**: 업무 관리(Tasks) CRUD 및 담당자 배정, 체크리스트 연동
 - [x] **Phase 1-F**: 캘린더(`events`), 제휴·협력 업체(`vendors`), 회계 장부(`finance`/`budgets`) 도메인 구축
-- [ ] **Phase 1-G**: 회의록(Meetings) & 결정사항(Decisions) 도메인 구축
+- [x] **Phase 1-G**: 회의록(Meetings) & 결정사항(Decisions) 도메인 구축
 - [ ] **Phase 1-H**: AI 회의록 분석 (안건 요약, 태스크/결정사항 후보 추출 및 사용자 승인)
 - [ ] **Phase 3**: Google Drive 연동, 인수인계 RAG 어시스턴트

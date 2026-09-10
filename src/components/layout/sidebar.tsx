@@ -18,7 +18,6 @@ import { StatusChip } from "@/components/common/status-chip";
 import { cn } from "@/lib/utils";
 
 const upcomingNavigation = [
-  { label: "문서 및 회의록", icon: FileText },
   { label: "AI 어시스턴트", icon: Sparkles },
 ];
 
@@ -29,6 +28,7 @@ export function Sidebar() {
   const isProjects = pathname.startsWith("/projects");
   const isTasks = pathname.startsWith("/tasks");
   const isCalendar = pathname.startsWith("/calendar");
+  const isMeetings = pathname.startsWith("/meetings");
   const isFinance = pathname.startsWith("/finance");
   const isVendors = pathname.startsWith("/vendors");
   const isMembers = pathname.startsWith("/members");
@@ -109,6 +109,19 @@ export function Sidebar() {
         </Link>
 
         <Link
+          href="/meetings"
+          className={cn(
+            "flex h-9 items-center gap-3 rounded-md px-2 font-medium transition-colors text-sm",
+            isMeetings
+              ? "bg-accent text-accent-foreground font-semibold"
+              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+          )}
+        >
+          <FileText size={18} aria-hidden="true" />
+          문서 및 회의록
+        </Link>
+
+        <Link
           href="/finance"
           className={cn(
             "flex h-9 items-center gap-3 rounded-md px-2 font-medium transition-colors text-sm",
@@ -172,6 +185,9 @@ export function Sidebar() {
         </Link>
         <Link href="/calendar" className="block px-2 py-1 hover:underline text-foreground">
           학생회 캘린더 →
+        </Link>
+        <Link href="/meetings" className="block px-2 py-1 hover:underline text-foreground">
+          회의록 및 결정사항 →
         </Link>
         <Link href="/finance" className="block px-2 py-1 hover:underline text-foreground">
           회계 장부 정리 →
