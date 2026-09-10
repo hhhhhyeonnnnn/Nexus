@@ -22,6 +22,8 @@ export const config = {
     "/vendors",
     "/members/:path*",
     "/members",
+    "/forms/:path*",
+    "/forms",
     "/auth/:path*",
     "/login",
     "/forgot-password",

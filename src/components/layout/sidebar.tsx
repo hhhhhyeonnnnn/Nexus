@@ -12,6 +12,7 @@ import {
   Receipt,
   Search,
   Sparkles,
+  Ticket,
   Users,
 } from "lucide-react";
 import { StatusChip } from "@/components/common/status-chip";
@@ -32,6 +33,7 @@ export function Sidebar() {
   const isFinance = pathname.startsWith("/finance");
   const isVendors = pathname.startsWith("/vendors");
   const isMembers = pathname.startsWith("/members");
+  const isForms = pathname.startsWith("/forms");
 
   return (
     <div className="flex min-h-full flex-col gap-6 bg-sidebar px-4 pt-6 pb-5">
@@ -160,6 +162,19 @@ export function Sidebar() {
           구성원
         </Link>
 
+        <Link
+          href="/forms"
+          className={cn(
+            "flex h-9 items-center gap-3 rounded-md px-2 font-medium transition-colors text-sm",
+            isForms
+              ? "bg-accent text-accent-foreground font-semibold"
+              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+          )}
+        >
+          <Ticket size={18} aria-hidden="true" />
+          행사·부스 신청
+        </Link>
+
         {upcomingNavigation.map(({ label, icon: Icon }) => (
           <button
             key={label}
@@ -182,6 +197,9 @@ export function Sidebar() {
         </Link>
         <Link href="/tasks" className="block px-2 py-1 hover:underline text-foreground">
           전체 업무 관리 →
+        </Link>
+        <Link href="/forms" className="block px-2 py-1 hover:underline text-foreground">
+          행사·티켓 관리 →
         </Link>
         <Link href="/calendar" className="block px-2 py-1 hover:underline text-foreground">
           학생회 캘린더 →
