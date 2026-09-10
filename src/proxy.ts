@@ -14,6 +14,8 @@ export const config = {
     "/tasks",
     "/calendar/:path*",
     "/calendar",
+    "/meetings/:path*",
+    "/meetings",
     "/finance/:path*",
     "/finance",
     "/vendors/:path*",

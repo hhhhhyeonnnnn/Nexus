@@ -28,6 +28,7 @@ before(async () => {
   await db.exec(await readFile(new URL("../supabase/migrations/20260909400000_tasks_write_policies.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260909500000_profiles_shared_read_policies.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260909600000_calendar_vendors_finance.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../supabase/migrations/20260910000000_meetings_and_decisions.sql", import.meta.url), "utf8"));
 
   for (const n of [1, 2]) {
     await db.exec(`
@@ -93,15 +94,15 @@ test("anonymous reads are denied for all tables", async () => {
   } finally { await db.exec("reset role"); }
 });
 
-test("non-admin member cannot write unpermitted tables like meetings", async () => {
+test("non-admin member cannot write unpermitted tables like files", async () => {
   await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
   try {
-    await assert.rejects(db.exec(`insert into public.meetings(organization_id, title, meeting_date) values ('${id(2)}', 'Unpermitted meeting', now())`), /permission denied/);
+    await assert.rejects(db.exec(`insert into public.files(organization_id, title, external_url) values ('${id(2)}', 'Unpermitted file', 'https://example.com/file')`), /permission denied/);
     // User 2 (MEMBER) cannot delete projects (blocked by RLS, 0 rows deleted)
     const { rowCount: deletedProjects } = await db.query("delete from public.projects");
     assert.equal(deletedProjects, 0);
     // Tables without delete grant are rejected with permission denied
-    await assert.rejects(db.exec("delete from public.meetings"), /permission denied/);
+    await assert.rejects(db.exec("delete from public.files"), /permission denied/);
   } finally { await db.exec("reset role"); }
 });
 
@@ -374,5 +375,81 @@ test("organization member can create and update budgets/ledger, but only admin c
     await db.exec(`update public.organization_members set role = 'MEMBER' where organization_id = '${id(2)}' and user_id = '${id(2)}'`);
   }
 });
+
+test("organization member can create and update meetings, but only admin can delete", async () => {
+  // Member 2 creates meeting in Org 2 -> SUCCESS
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+  try {
+    await db.exec(`
+      insert into public.meetings(id, organization_id, title, content, attendees, meeting_date)
+      values ('${id(70)}', '${id(2)}', 'Weekly General Meeting', 'Discussing festival agenda', 'Kim, Lee', now())
+    `);
+    const { rows } = await db.query(`select title, attendees from public.meetings where id = '${id(70)}'`);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].title, "Weekly General Meeting");
+    assert.equal(rows[0].attendees, "Kim, Lee");
+
+    // Member 2 updates meeting in Org 2 -> SUCCESS
+    await db.exec(`update public.meetings set title = 'Updated General Meeting' where id = '${id(70)}'`);
+    const { rows: updated } = await db.query(`select title from public.meetings where id = '${id(70)}'`);
+    assert.equal(updated[0].title, "Updated General Meeting");
+
+    // Member 2 (regular MEMBER) tries to delete meeting -> REJECTED (0 rows deleted)
+    const { rowCount } = await db.query(`delete from public.meetings where id = '${id(70)}'`);
+    assert.equal(rowCount, 0);
+
+    // Promote Member 2 to ADMIN of Org 2
+    await db.exec("reset role");
+    await db.exec(`update public.organization_members set role = 'ADMIN' where organization_id = '${id(2)}' and user_id = '${id(2)}'`);
+    await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+
+    // Admin Member 2 deletes meeting -> SUCCESS
+    const { rowCount: adminDeleted } = await db.query(`delete from public.meetings where id = '${id(70)}'`);
+    assert.equal(adminDeleted, 1);
+  } finally {
+    await db.exec("reset role");
+    await db.exec(`update public.organization_members set role = 'MEMBER' where organization_id = '${id(2)}' and user_id = '${id(2)}'`);
+  }
+});
+
+test("organization member can create and update decisions, but only admin can delete", async () => {
+  // Setup meeting first as admin
+  await db.exec(`
+    insert into public.meetings(id, organization_id, title, content, meeting_date)
+    values ('${id(75)}', '${id(2)}', 'Festival Meeting', 'Festival decisions', now())
+  `);
+
+  // Member 2 creates decision in Org 2 linked to meeting -> SUCCESS
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+  try {
+    await db.exec(`
+      insert into public.decisions(id, organization_id, meeting_id, title, content, reason)
+      values ('${id(80)}', '${id(2)}', '${id(75)}', 'Set Ticket Price', 'Price is 5,000 KRW', 'Budget constraints')
+    `);
+    const { rows } = await db.query(`select title, content, reason from public.decisions where id = '${id(80)}'`);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].title, "Set Ticket Price");
+    assert.equal(rows[0].content, "Price is 5,000 KRW");
+    assert.equal(rows[0].reason, "Budget constraints");
+
+    // Member 2 (regular MEMBER) tries to delete decision -> REJECTED (0 rows deleted)
+    const { rowCount } = await db.query(`delete from public.decisions where id = '${id(80)}'`);
+    assert.equal(rowCount, 0);
+
+    // Promote Member 2 to ADMIN of Org 2
+    await db.exec("reset role");
+    await db.exec(`update public.organization_members set role = 'ADMIN' where organization_id = '${id(2)}' and user_id = '${id(2)}'`);
+    await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+
+    // Admin Member 2 deletes decision -> SUCCESS
+    const { rowCount: adminDeleted } = await db.query(`delete from public.decisions where id = '${id(80)}'`);
+    assert.equal(adminDeleted, 1);
+  } finally {
+    await db.exec("reset role");
+    await db.exec(`update public.organization_members set role = 'MEMBER' where organization_id = '${id(2)}' and user_id = '${id(2)}'`);
+    await db.exec(`delete from public.meetings where id = '${id(75)}'`);
+  }
+});
+
 
 
