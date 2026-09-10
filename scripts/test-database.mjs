@@ -5,7 +5,7 @@ import { PGlite } from "@electric-sql/pglite";
 
 const db = new PGlite();
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const tenantTables = ["organization_members", "projects", "tasks", "meetings", "decisions", "events", "budgets", "vendors", "files", "departments"];
+const tenantTables = ["organization_members", "projects", "tasks", "meetings", "decisions", "events", "budgets", "vendors", "files", "departments", "event_forms", "form_submissions"];
 const allTables = ["organizations", ...tenantTables, "profiles", "organization_creation_requests", "organization_join_requests"];
 
 before(async () => {
@@ -31,6 +31,7 @@ before(async () => {
   await db.exec(await readFile(new URL("../supabase/migrations/20260910000000_meetings_and_decisions.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260910100000_meetings_ai_summary.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260910200000_departments_and_org_chart.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../supabase/migrations/20260910300000_event_forms_and_tickets.sql", import.meta.url), "utf8"));
 
   for (const n of [1, 2]) {
     await db.exec(`
@@ -47,15 +48,17 @@ before(async () => {
       insert into public.vendors(id, organization_id, name) values ('${id(n)}', '${id(n)}', 'Vendor');
       insert into public.budgets(organization_id, project_id, vendor_id, department_id, title) values ('${id(n)}', '${id(n)}', '${id(n)}', '${id(n)}', 'Budget');
       insert into public.files(organization_id, project_id, title, external_url) values ('${id(n)}', '${id(n)}', 'Document', 'https://example.test/document');
+      insert into public.event_forms(id, organization_id, title, category, status) values ('${id(n)}', '${id(n)}', 'Festival Form ${n}', 'BOOTH', 'OPEN');
+      insert into public.form_submissions(id, organization_id, form_id, applicant_name, applicant_phone, ticket_code) values ('${id(n)}', '${id(n)}', '${id(n)}', 'Applicant ${n}', '010-1234-567${n}', 'TKT-2026-TEST0${n}');
     `);
   }
 });
 
 after(async () => { await db.close(); });
 
-test("all 14 tables have RLS enabled", async () => {
+test("all 16 tables have RLS enabled", async () => {
   const { rows } = await db.query("select relname, relrowsecurity from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r'");
-  assert.equal(rows.length, 14);
+  assert.equal(rows.length, 16);
   assert.ok(rows.every((row) => row.relrowsecurity));
 });
 
@@ -88,10 +91,11 @@ test("authenticated nonmembers cannot read tenant data", async () => {
   } finally { await db.exec("reset role"); }
 });
 
-test("anonymous reads are denied for all tables", async () => {
+test("anonymous reads are denied for all private tables", async () => {
   await db.exec("set role anon");
+  const privateTables = allTables.filter((t) => t !== "event_forms" && t !== "form_submissions");
   try {
-    for (const table of allTables) {
+    for (const table of privateTables) {
       await assert.rejects(db.query(`select * from public.${table}`), /permission denied/);
     }
   } finally { await db.exec("reset role"); }
@@ -503,5 +507,90 @@ test("organization admin can create, update, and delete departments while regula
   }
 });
 
+test("event_forms and form_submissions RLS: member access, anon open form submission, and admin deletion", async () => {
+  // 1. Member 2 creates an OPEN form and a DRAFT form in Org 2
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+  try {
+    await db.query(`
+      insert into public.event_forms(id, organization_id, title, category, status)
+      values ('${id(80)}', '${id(2)}', 'Spring Festival Booth', 'BOOTH', 'OPEN')
+    `);
+    await db.query(`
+      insert into public.event_forms(id, organization_id, title, category, status)
+      values ('${id(81)}', '${id(2)}', 'Secret Concert', 'TICKET', 'DRAFT')
+    `);
 
+    // Member 2 can see both forms
+    const { rows: memberForms } = await db.query(`select id, status from public.event_forms where organization_id = '${id(2)}'`);
+    assert.equal(memberForms.length, 3); // 1 seeded + 2 newly inserted
+  } finally {
+    await db.exec("reset role");
+  }
 
+  // 2. Anonymous user (anon) reads forms: can see OPEN forms, CANNOT see DRAFT forms
+  await db.exec("set role anon;");
+  try {
+    const { rows: openForms } = await db.query(`select id, title from public.event_forms where id = '${id(80)}'`);
+    assert.equal(openForms.length, 1);
+    assert.equal(openForms[0].title, "Spring Festival Booth");
+
+    const { rows: draftForms } = await db.query(`select id from public.event_forms where id = '${id(81)}'`);
+    assert.equal(draftForms.length, 0); // Draft is hidden from anon!
+
+    // 3. Anonymous user submits application to OPEN form -> SUCCESS
+    await db.query(`
+      insert into public.form_submissions(id, organization_id, form_id, applicant_name, applicant_phone, ticket_code)
+      values ('${id(85)}', '${id(2)}', '${id(80)}', 'External Student', '010-9999-8888', 'TKT-2026-EXT01')
+    `);
+    const { rows: subCheck } = await db.query(`select ticket_code from public.form_submissions where ticket_code = 'TKT-2026-EXT01'`);
+    assert.equal(subCheck.length, 1);
+
+    // 4. Anonymous user tries to submit application to DRAFT form -> FAILS (rejected by RLS check)
+    await assert.rejects(
+      async () => {
+        await db.query(`
+          insert into public.form_submissions(id, organization_id, form_id, applicant_name, applicant_phone, ticket_code)
+          values ('${id(86)}', '${id(2)}', '${id(81)}', 'Sneaky Student', '010-0000-0000', 'TKT-2026-EXT02')
+        `);
+      },
+      /new row violates row-level security policy/i
+    );
+  } finally {
+    await db.exec("reset role");
+  }
+
+  // 5. Member 2 can review submission and update status (APPROVE, Check-in)
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+  try {
+    await db.query(`
+      update public.form_submissions
+      set status = 'APPROVED', checked_in = true, checked_in_at = now()
+      where id = '${id(85)}'
+    `);
+    const { rows: approvedRows } = await db.query(`select status, checked_in from public.form_submissions where id = '${id(85)}'`);
+    assert.equal(approvedRows[0].status, "APPROVED");
+    assert.equal(approvedRows[0].checked_in, true);
+
+    // Regular member cannot delete form -> DENIED (0 rows)
+    const { rowCount: memberDel } = await db.query(`delete from public.event_forms where id = '${id(80)}'`);
+    assert.equal(memberDel, 0);
+  } finally {
+    await db.exec("reset role");
+  }
+
+  // 6. Admin deletes form -> SUCCESS (cascade deletes submissions)
+  await db.exec(`update public.organization_members set role = 'ADMIN' where organization_id = '${id(2)}' and user_id = '${id(2)}'`);
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+  try {
+    const { rowCount: adminDel } = await db.query(`delete from public.event_forms where id = '${id(80)}'`);
+    assert.equal(adminDel, 1);
+
+    // Submissions cascaded
+    const { rows: subRows } = await db.query(`select id from public.form_submissions where id = '${id(85)}'`);
+    assert.equal(subRows.length, 0);
+  } finally {
+    await db.exec("reset role");
+    await db.exec(`update public.organization_members set role = 'MEMBER' where organization_id = '${id(2)}' and user_id = '${id(2)}'`);
+    await db.exec(`delete from public.event_forms where id in ('${id(80)}', '${id(81)}')`);
+  }
+});

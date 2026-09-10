@@ -226,6 +226,144 @@ export type Database = {
           },
         ]
       }
+      event_forms: {
+        Row: {
+          category: "BOOTH" | "TICKET" | "GENERAL"
+          created_at: string
+          custom_fields: Json
+          description: string
+          end_at: string | null
+          id: string
+          max_capacity: number | null
+          organization_id: string
+          project_id: string | null
+          start_at: string | null
+          status: "DRAFT" | "OPEN" | "CLOSED"
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: "BOOTH" | "TICKET" | "GENERAL"
+          created_at?: string
+          custom_fields?: Json
+          description?: string
+          end_at?: string | null
+          id?: string
+          max_capacity?: number | null
+          organization_id: string
+          project_id?: string | null
+          start_at?: string | null
+          status?: "DRAFT" | "OPEN" | "CLOSED"
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: "BOOTH" | "TICKET" | "GENERAL"
+          created_at?: string
+          custom_fields?: Json
+          description?: string
+          end_at?: string | null
+          id?: string
+          max_capacity?: number | null
+          organization_id?: string
+          project_id?: string | null
+          start_at?: string | null
+          status?: "DRAFT" | "OPEN" | "CLOSED"
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_forms_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_forms_organization_id_project_id_fkey"
+            columns: ["organization_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      form_submissions: {
+        Row: {
+          applicant_department: string | null
+          applicant_email: string | null
+          applicant_name: string
+          applicant_phone: string
+          applicant_student_id: string | null
+          checked_in: boolean
+          checked_in_at: string | null
+          created_at: string
+          form_id: string
+          group_name: string | null
+          id: string
+          organization_id: string
+          rejection_reason: string | null
+          responses: Json
+          status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED"
+          ticket_code: string
+          updated_at: string
+        }
+        Insert: {
+          applicant_department?: string | null
+          applicant_email?: string | null
+          applicant_name: string
+          applicant_phone: string
+          applicant_student_id?: string | null
+          checked_in?: boolean
+          checked_in_at?: string | null
+          created_at?: string
+          form_id: string
+          group_name?: string | null
+          id?: string
+          organization_id: string
+          rejection_reason?: string | null
+          responses?: Json
+          status?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED"
+          ticket_code: string
+          updated_at?: string
+        }
+        Update: {
+          applicant_department?: string | null
+          applicant_email?: string | null
+          applicant_name?: string
+          applicant_phone?: string
+          applicant_student_id?: string | null
+          checked_in?: boolean
+          checked_in_at?: string | null
+          created_at?: string
+          form_id?: string
+          group_name?: string | null
+          id?: string
+          organization_id?: string
+          rejection_reason?: string | null
+          responses?: Json
+          status?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED"
+          ticket_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_submissions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_submissions_organization_id_form_id_fkey"
+            columns: ["organization_id", "form_id"]
+            isOneToOne: false
+            referencedRelation: "event_forms"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       files: {
         Row: {
           created_at: string

@@ -18,10 +18,11 @@
 | events | 조직, 선택 프로젝트, 시작/종료 일시 (Phase 2) |
 | budgets | 조직, 선택 프로젝트/업체/부서, 계획/실제 금액 |
 | vendors | 조직별 업체 연락처, 평가, 메모 |
-| files | 조직, 선택 프로젝트, HTTPS 외부 문서 URL (Phase 3) |
 | departments | 조직별 부서(집행국)명, 설명, 색상, 정렬 순서 |
+| event_forms | 행사/부스 신청 폼 (제목, 유형: BOOTH/TICKET/GENERAL, 정원, 기간, 커스텀 질문 jsonb) |
+| form_submissions | 행사 참가/부스 신청서 및 고유 티켓 (대표자, 연락처, 상태, 티켓코드, 체크인 여부) |
 
-전체 14개 테이블입니다 (조직 생성/가입 신청 테이블 포함). UUID PK는 `gen_random_uuid()`를 사용합니다. 프로젝트 및 부서에 속하지 않은 조직 업무도 허용하도록 `project_id`, `department_id`는 nullable입니다. 회의/결정 같은 조직 기록은 일반 삭제 시 참조 무결성이 유지되도록 FK의 기본 NO ACTION을 사용합니다. 부서 삭제 시 소속 구성원/업무/예산의 부서 정보는 ON DELETE SET NULL로 보존됩니다.
+전체 16개 테이블입니다 (조직 생성/가입 신청 테이블 포함). UUID PK는 `gen_random_uuid()`를 사용합니다. 프로젝트 및 부서에 속하지 않은 조직 업무도 허용하도록 `project_id`, `department_id`는 nullable입니다. 회의/결정 같은 조직 기록은 일반 삭제 시 참조 무결성이 유지되도록 FK의 기본 NO ACTION을 사용합니다. 부서 삭제 시 소속 구성원/업무/예산의 부서 정보는 ON DELETE SET NULL로 보존됩니다. 신청 폼 삭제 시 연관 신청서 및 티켓은 ON DELETE CASCADE로 함께 정리됩니다.
 
 ## 타입과 제약
 
