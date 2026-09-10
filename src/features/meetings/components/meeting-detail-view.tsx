@@ -11,11 +11,13 @@ import {
   ArrowLeft,
   FileText,
   CheckCircle2,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { deleteMeeting, type MeetingWithStats } from "@/features/meetings/actions";
 import type { DecisionRow } from "@/features/meetings/actions";
 import { EditMeetingDialog } from "./edit-meeting-dialog";
+import { AiAnalysisDialog } from "./ai-analysis-dialog";
 import { CreateDecisionDialog } from "@/features/decisions/components/create-decision-dialog";
 import { DecisionCard } from "@/features/decisions/components/decision-card";
 
@@ -23,6 +25,7 @@ interface MeetingDetailViewProps {
   meeting: MeetingWithStats;
   decisions: DecisionRow[];
   projects: Array<{ id: string; name: string }>;
+  members: Array<{ userId: string; name: string; email: string }>;
   isAdmin: boolean;
 }
 
@@ -30,6 +33,7 @@ export function MeetingDetailView({
   meeting,
   decisions,
   projects,
+  members,
   isAdmin,
 }: MeetingDetailViewProps) {
   const router = useRouter();
@@ -104,7 +108,13 @@ export function MeetingDetailView({
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <AiAnalysisDialog
+              meetingId={meeting.id}
+              projectId={meeting.project_id}
+              hasExistingSummary={!!meeting.ai_summary}
+              members={members}
+            />
             <EditMeetingDialog meeting={meeting} projects={projects} />
             {isAdmin && (
               <Button
@@ -134,12 +144,40 @@ export function MeetingDetailView({
         )}
       </div>
 
+      {/* AI Summary Card (if present) */}
+      {meeting.ai_summary && (
+        <div className="rounded-xl border border-blue-500/20 bg-gradient-to-br from-blue-50/40 to-indigo-50/30 dark:from-blue-950/20 dark:to-indigo-950/20 p-6 shadow-2xs space-y-3">
+          <div className="flex items-center justify-between pb-2.5 border-b border-blue-200/50 dark:border-blue-900/40">
+            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Sparkles size={16} className="text-blue-600 dark:text-blue-400" />
+              <span>AI 핵심 안건 요약</span>
+            </h2>
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 dark:text-blue-300 bg-blue-100/70 dark:bg-blue-900/50 px-2 py-0.5 rounded-md border border-blue-200/60 dark:border-blue-800/40">
+              <CheckCircle2 size={11} />
+              <span>검토 및 저장 완료</span>
+            </span>
+          </div>
+
+          <div className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap font-sans">
+            {meeting.ai_summary}
+          </div>
+        </div>
+      )}
+
       {/* Meeting Content Body */}
       <div className="rounded-xl border border-border bg-card p-6 shadow-2xs space-y-3">
-        <h2 className="text-sm font-bold text-foreground flex items-center gap-1.5 pb-2 border-b border-border">
-          <FileText size={16} className="text-primary" />
-          <span>회의 내용 및 기록</span>
-        </h2>
+        <div className="flex items-center justify-between pb-2 border-b border-border">
+          <h2 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+            <FileText size={16} className="text-primary" />
+            <span>회의 내용 및 기록</span>
+          </h2>
+
+          {!meeting.ai_summary && meeting.content && (
+            <span className="text-[11px] text-muted-foreground hidden sm:inline">
+              우측 상단 &apos;AI 회의록 분석&apos;으로 요약 및 할 일을 추출할 수 있습니다.
+            </span>
+          )}
+        </div>
 
         {meeting.content ? (
           <div className="text-xs text-foreground/90 font-mono leading-relaxed whitespace-pre-wrap p-2 bg-muted/20 rounded-lg">

@@ -27,7 +27,7 @@ export async function generateMetadata({
 
 export default async function MeetingDetailPage({ params }: MeetingDetailPageProps) {
   const { id } = await params;
-  const { meeting, decisions, projects, isAdmin } = await getMeetingById(id);
+  const { meeting, decisions, projects, members, isAdmin } = await getMeetingById(id);
 
   if (!meeting) {
     notFound();
@@ -38,6 +38,7 @@ export default async function MeetingDetailPage({ params }: MeetingDetailPagePro
       meeting={meeting}
       decisions={decisions}
       projects={projects}
+      members={members}
       isAdmin={isAdmin}
     />
   );

@@ -225,6 +225,7 @@ export type Database = {
       }
       meetings: {
         Row: {
+          ai_summary: string | null
           attendees: string | null
           content: string
           created_at: string
@@ -235,6 +236,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          ai_summary?: string | null
           attendees?: string | null
           content?: string
           created_at?: string
@@ -245,6 +247,7 @@ export type Database = {
           title: string
         }
         Update: {
+          ai_summary?: string | null
           attendees?: string | null
           content?: string
           created_at?: string

@@ -6,6 +6,12 @@ import { getCurrentUserOrganization } from "@/features/projects/actions";
 import { getSupabaseConfig } from "@/lib/supabase/env";
 import type { Database } from "@/types/database";
 
+import {
+  analyzeMeetingWithAI,
+  type MeetingTaskCandidate,
+  type MeetingDecisionCandidate,
+} from "@/lib/ai/analyze-meeting";
+
 export type MeetingRow = Database["public"]["Tables"]["meetings"]["Row"];
 export type DecisionRow = Database["public"]["Tables"]["decisions"]["Row"];
 
@@ -24,6 +30,7 @@ export interface MeetingDetailData {
   meeting: MeetingWithStats | null;
   decisions: DecisionRow[];
   projects: Array<{ id: string; name: string }>;
+  members: Array<{ userId: string; name: string; email: string }>;
   isAdmin: boolean;
 }
 
@@ -177,6 +184,7 @@ export async function getMeetingById(id: string): Promise<MeetingDetailData> {
     meeting: null,
     decisions: [],
     projects: [],
+    members: [],
     isAdmin: false,
   };
 
@@ -219,6 +227,21 @@ export async function getMeetingById(id: string): Promise<MeetingDetailData> {
     .eq("organization_id", membership.organizationId)
     .order("name", { ascending: true });
 
+  // 4. Fetch organization members for task assignee assignment
+  const { data: rawMembers } = await supabase
+    .from("organization_members")
+    .select("user_id, profiles(id, name, email)")
+    .eq("organization_id", membership.organizationId);
+
+  const members = (rawMembers ?? []).map((rm) => {
+    const p = rm.profiles as { id: string; name: string; email: string } | null;
+    return {
+      userId: rm.user_id,
+      name: p?.name || p?.email?.split("@")[0] || "구성원",
+      email: p?.email || "",
+    };
+  });
+
   const proj = m.projects as { id: string; name: string } | null;
   const meeting: MeetingWithStats = {
     ...m,
@@ -230,6 +253,7 @@ export async function getMeetingById(id: string): Promise<MeetingDetailData> {
     meeting,
     decisions: decisions ?? [],
     projects: rawProjects ?? [],
+    members,
     isAdmin,
   };
 }
@@ -370,4 +394,231 @@ export async function deleteMeeting(
   revalidatePath("/meetings");
   revalidatePath("/dashboard");
   return { error: null, success: true };
+}
+
+// ---------------------------------------------------------------------------
+// AI Meeting Analysis & Batch Confirmation
+// ---------------------------------------------------------------------------
+
+export interface TaskCandidateWithMatch extends MeetingTaskCandidate {
+  matchedUserId: string | null;
+}
+
+export interface AnalyzeMeetingActionResult {
+  error: string | null;
+  data?: {
+    summary: string;
+    tasks: TaskCandidateWithMatch[];
+    decisions: MeetingDecisionCandidate[];
+  };
+}
+
+export async function analyzeMeetingAction(
+  meetingId: string,
+): Promise<AnalyzeMeetingActionResult> {
+  const membership = await getCurrentUserOrganization();
+  if (!membership) {
+    return { error: "학생회 조직 정보를 찾을 수 없습니다." };
+  }
+
+  const supabase = await createClient();
+  const { data: meeting, error } = await supabase
+    .from("meetings")
+    .select("id, title, content, attendees, project_id, projects(name)")
+    .eq("organization_id", membership.organizationId)
+    .eq("id", meetingId)
+    .single();
+
+  if (error || !meeting) {
+    return { error: "회의록을 찾을 수 없습니다." };
+  }
+
+  if (!meeting.content || meeting.content.trim().length < 10) {
+    return {
+      error:
+        "회의 내용이 너무 짧아 AI 분석을 진행할 수 없습니다. 회의록 내용을 10자 이상 작성해 주세요.",
+    };
+  }
+
+  const proj = meeting.projects as { name: string } | null;
+  const aiResult = await analyzeMeetingWithAI({
+    title: meeting.title,
+    content: meeting.content,
+    attendees: meeting.attendees,
+    projectName: proj?.name ?? null,
+  });
+
+  if (!aiResult.success) {
+    return { error: aiResult.error };
+  }
+
+  // Match suggestedAssigneeName with organization members
+  const { data: rawMembers } = await supabase
+    .from("organization_members")
+    .select("user_id, profiles(name, email)")
+    .eq("organization_id", membership.organizationId);
+
+  const membersList = (rawMembers ?? []).map((rm) => {
+    const p = rm.profiles as { name: string; email: string } | null;
+    return {
+      userId: rm.user_id,
+      name: (p?.name || "").trim(),
+      emailPrefix: (p?.email || "").split("@")[0].trim(),
+    };
+  });
+
+  const tasksWithMatch: TaskCandidateWithMatch[] = aiResult.data.tasks.map((task) => {
+    let matchedUserId: string | null = null;
+    if (task.suggestedAssigneeName) {
+      const query = task.suggestedAssigneeName.trim().toLowerCase();
+      const found = membersList.find(
+        (m) =>
+          (m.name && m.name.toLowerCase() === query) ||
+          (m.name && m.name.toLowerCase().includes(query)) ||
+          (m.emailPrefix && m.emailPrefix.toLowerCase() === query),
+      );
+      if (found) {
+        matchedUserId = found.userId;
+      }
+    }
+    return {
+      ...task,
+      matchedUserId,
+    };
+  });
+
+  return {
+    error: null,
+    data: {
+      summary: aiResult.data.summary,
+      tasks: tasksWithMatch,
+      decisions: aiResult.data.decisions,
+    },
+  };
+}
+
+export async function saveMeetingAiSummary(
+  meetingId: string,
+  summary: string,
+): Promise<{ error: string | null; success?: boolean }> {
+  const membership = await getCurrentUserOrganization();
+  if (!membership) {
+    return { error: "학생회 조직 정보를 찾을 수 없습니다." };
+  }
+
+  if (!summary.trim()) {
+    return { error: "저장할 요약 내용이 비어있습니다." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("meetings")
+    .update({ ai_summary: summary.trim() })
+    .eq("organization_id", membership.organizationId)
+    .eq("id", meetingId);
+
+  if (error) {
+    return { error: "회의록 요약 저장에 실패했습니다: " + error.message };
+  }
+
+  revalidatePath("/meetings");
+  revalidatePath(`/meetings/${meetingId}`);
+  return { error: null, success: true };
+}
+
+export interface BatchCreateTaskInput {
+  title: string;
+  description: string;
+  dueDate: string | null;
+  assigneeId: string | null;
+}
+
+export async function batchCreateTasksFromMeeting(
+  meetingId: string,
+  projectId: string | null,
+  tasks: BatchCreateTaskInput[],
+): Promise<{ error: string | null; count?: number; success?: boolean }> {
+  const membership = await getCurrentUserOrganization();
+  if (!membership) {
+    return { error: "학생회 조직 정보를 찾을 수 없습니다." };
+  }
+
+  const validTasks = tasks.filter((t) => t.title && t.title.trim().length > 0);
+  if (validTasks.length === 0) {
+    return { error: "등록할 유효한 태스크가 없습니다." };
+  }
+
+  const supabase = await createClient();
+  const rows: Database["public"]["Tables"]["tasks"]["Insert"][] = validTasks.map((t) => ({
+    organization_id: membership.organizationId,
+    project_id: projectId || null,
+    assignee_id: t.assigneeId || null,
+    title: t.title.trim(),
+    description: t.description.trim(),
+    status: "TODO",
+    due_date: t.dueDate || null,
+  }));
+
+  const { error } = await supabase.from("tasks").insert(rows);
+  if (error) {
+    return { error: "태스크 등록 중 오류가 발생했습니다: " + error.message };
+  }
+
+  revalidatePath("/tasks");
+  revalidatePath("/dashboard");
+  if (projectId) {
+    revalidatePath(`/projects/${projectId}`);
+  }
+  revalidatePath(`/meetings/${meetingId}`);
+
+  return { error: null, count: rows.length, success: true };
+}
+
+export interface BatchCreateDecisionInput {
+  title: string;
+  content: string;
+  reason: string;
+}
+
+export async function batchCreateDecisionsFromMeeting(
+  meetingId: string,
+  projectId: string | null,
+  decisions: BatchCreateDecisionInput[],
+): Promise<{ error: string | null; count?: number; success?: boolean }> {
+  const membership = await getCurrentUserOrganization();
+  if (!membership) {
+    return { error: "학생회 조직 정보를 찾을 수 없습니다." };
+  }
+
+  const validDecisions = decisions.filter(
+    (d) => d.title && d.title.trim().length > 0 && d.content && d.content.trim().length > 0,
+  );
+  if (validDecisions.length === 0) {
+    return { error: "등록할 유효한 결정사항이 없습니다. (제목과 내용 필수)" };
+  }
+
+  const supabase = await createClient();
+  const rows: Database["public"]["Tables"]["decisions"]["Insert"][] = validDecisions.map((d) => ({
+    organization_id: membership.organizationId,
+    meeting_id: meetingId,
+    project_id: projectId || null,
+    title: d.title.trim(),
+    content: d.content.trim(),
+    reason: d.reason.trim() || null,
+    decided_at: new Date().toISOString(),
+  }));
+
+  const { error } = await supabase.from("decisions").insert(rows);
+  if (error) {
+    return { error: "결정사항 등록 중 오류가 발생했습니다: " + error.message };
+  }
+
+  revalidatePath(`/meetings/${meetingId}`);
+  revalidatePath("/meetings");
+  revalidatePath("/dashboard");
+  if (projectId) {
+    revalidatePath(`/projects/${projectId}`);
+  }
+
+  return { error: null, count: rows.length, success: true };
 }

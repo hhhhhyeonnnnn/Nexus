@@ -29,6 +29,7 @@ before(async () => {
   await db.exec(await readFile(new URL("../supabase/migrations/20260909500000_profiles_shared_read_policies.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260909600000_calendar_vendors_finance.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260910000000_meetings_and_decisions.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../supabase/migrations/20260910100000_meetings_ai_summary.sql", import.meta.url), "utf8"));
 
   for (const n of [1, 2]) {
     await db.exec(`
