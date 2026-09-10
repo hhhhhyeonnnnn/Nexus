@@ -4,13 +4,13 @@ type CreationRequest = {
   id: string;
   org_name: string;
   university_name: string;
-  status: "pending" | "approved" | "rejected";
+  status: string;
   created_at: string;
 };
 
 type JoinRequest = {
   id: string;
-  status: "pending" | "approved" | "rejected";
+  status: string;
   created_at: string;
   organizations: {
     name: string;
@@ -29,7 +29,7 @@ export function OnboardingStatus({
     return null;
   }
 
-  const getStatusBadge = (status: "pending" | "approved" | "rejected") => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
         return <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">심사 중</span>;
@@ -37,6 +37,8 @@ export function OnboardingStatus({
         return <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">승인됨</span>;
       case "rejected":
         return <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-800">반려됨</span>;
+      default:
+        return <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-800">{status}</span>;
     }
   };
 

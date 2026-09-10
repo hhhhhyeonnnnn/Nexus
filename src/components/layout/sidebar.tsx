@@ -5,10 +5,12 @@ import { usePathname } from "next/navigation";
 import {
   Building2,
   CalendarDays,
+  FileCheck2,
   FileText,
   Folder,
   LayoutGrid,
   ListChecks,
+  Megaphone,
   Receipt,
   Search,
   Sparkles,
@@ -34,6 +36,8 @@ export function Sidebar() {
   const isVendors = pathname.startsWith("/vendors");
   const isMembers = pathname.startsWith("/members");
   const isForms = pathname.startsWith("/forms");
+  const isApprovals = pathname.startsWith("/approvals");
+  const isCommunity = pathname.startsWith("/community");
 
   return (
     <div className="flex min-h-full flex-col gap-6 bg-sidebar px-4 pt-6 pb-5">
@@ -175,6 +179,32 @@ export function Sidebar() {
           행사·부스 신청
         </Link>
 
+        <Link
+          href="/approvals"
+          className={cn(
+            "flex h-9 items-center gap-3 rounded-md px-2 font-medium transition-colors text-sm",
+            isApprovals
+              ? "bg-accent text-accent-foreground font-semibold"
+              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+          )}
+        >
+          <FileCheck2 size={18} aria-hidden="true" />
+          전자결재
+        </Link>
+
+        <Link
+          href="/community"
+          className={cn(
+            "flex h-9 items-center gap-3 rounded-md px-2 font-medium transition-colors text-sm",
+            isCommunity
+              ? "bg-accent text-accent-foreground font-semibold"
+              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+          )}
+        >
+          <Megaphone size={18} aria-hidden="true" />
+          소통·피드
+        </Link>
+
         {upcomingNavigation.map(({ label, icon: Icon }) => (
           <button
             key={label}
@@ -197,6 +227,12 @@ export function Sidebar() {
         </Link>
         <Link href="/tasks" className="block px-2 py-1 hover:underline text-foreground">
           전체 업무 관리 →
+        </Link>
+        <Link href="/approvals" className="block px-2 py-1 hover:underline text-foreground">
+          전자결재함 →
+        </Link>
+        <Link href="/community" className="block px-2 py-1 hover:underline text-foreground">
+          소통·피드 관리 →
         </Link>
         <Link href="/forms" className="block px-2 py-1 hover:underline text-foreground">
           행사·티켓 관리 →

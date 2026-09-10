@@ -72,7 +72,7 @@ export default async function PublicApplyPage(props: {
           formId={form.id}
           formTitle={form.title}
           formDescription={form.description}
-          category={form.category}
+          category={form.category as "BOOTH" | "TICKET" | "GENERAL"}
           maxCapacity={form.max_capacity}
           currentCount={currentSubmissionsCount}
           endAt={form.end_at}

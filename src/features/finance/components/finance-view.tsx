@@ -4,6 +4,7 @@ import { Receipt, ArrowDownRight, ArrowUpRight, Wallet, PieChart } from "lucide-
 import type { FinancePageData } from "@/features/finance/actions";
 import { CreateEntryDialog } from "./create-entry-dialog";
 import { ReceiptOcrDialog } from "./receipt-ocr-dialog";
+import { AuditReportModal } from "./audit-report-modal";
 import { LedgerTable } from "./ledger-table";
 
 interface FinanceViewProps {
@@ -34,6 +35,7 @@ export function FinanceView({ data }: FinanceViewProps) {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <AuditReportModal data={data} />
           <ReceiptOcrDialog vendors={vendors} projects={projects} departments={departments} />
           <CreateEntryDialog vendors={vendors} projects={projects} departments={departments} />
         </div>
