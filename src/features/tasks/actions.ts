@@ -10,6 +10,7 @@ type TaskStatus = Database["public"]["Enums"]["task_status"];
 
 export type TaskWithDetails = Database["public"]["Tables"]["tasks"]["Row"] & {
   projects?: { id: string; name: string } | null;
+  departments?: { id: string; name: string; color: string } | null;
   assigneeName?: string | null;
 };
 
@@ -26,6 +27,7 @@ export async function getTasks(options?: {
   projectId?: string;
   status?: TaskStatus | "ALL";
   assigneeId?: string;
+  departmentId?: string;
 }): Promise<TaskWithDetails[]> {
   if (!getSupabaseConfig()) return [];
 
@@ -34,10 +36,10 @@ export async function getTasks(options?: {
 
   const supabase = await createClient();
 
-  // 1. Fetch tasks with project relation
+  // 1. Fetch tasks with project and department relations
   let query = supabase
     .from("tasks")
-    .select("*, projects(id, name)")
+    .select("*, projects(id, name), departments(id, name, color)")
     .eq("organization_id", membership.organizationId)
     .order("due_date", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false });
@@ -52,6 +54,10 @@ export async function getTasks(options?: {
 
   if (options?.assigneeId && options.assigneeId !== "ALL") {
     query = query.eq("assignee_id", options.assigneeId);
+  }
+
+  if (options?.departmentId && options.departmentId !== "ALL") {
+    query = query.eq("department_id", options.departmentId);
   }
 
   const { data: rawTasks, error } = await query;
@@ -188,6 +194,7 @@ export async function createTask(
   const description = (formData.get("description") as string) || "";
   const projectId = (formData.get("project_id") as string) || null;
   const assigneeId = (formData.get("assignee_id") as string) || null;
+  const departmentId = (formData.get("department_id") as string) || null;
   const dueDate = (formData.get("due_date") as string) || null;
   const status = (formData.get("status") as TaskStatus) || "TODO";
 
@@ -200,6 +207,7 @@ export async function createTask(
     organization_id: membership.organizationId,
     project_id: projectId || null,
     assignee_id: assigneeId || null,
+    department_id: departmentId || null,
     title: title.trim(),
     description: description.trim(),
     status,
@@ -261,6 +269,7 @@ export async function updateTask(
   const description = (formData.get("description") as string) || "";
   const projectId = (formData.get("project_id") as string) || null;
   const assigneeId = (formData.get("assignee_id") as string) || null;
+  const departmentId = (formData.get("department_id") as string) || null;
   const dueDate = (formData.get("due_date") as string) || null;
   const status = (formData.get("status") as TaskStatus) || "TODO";
 
@@ -276,6 +285,7 @@ export async function updateTask(
       description: description.trim(),
       project_id: projectId || null,
       assignee_id: assigneeId || null,
+      department_id: departmentId || null,
       status,
       due_date: dueDate || null,
     })
@@ -319,3 +329,21 @@ export async function deleteTask(
   }
   return { error: null, success: true };
 }
+
+export async function getOrganizationDepartmentsList(): Promise<
+  Array<{ id: string; name: string; color: string }>
+> {
+  const membership = await getCurrentUserOrganization();
+  if (!membership) return [];
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("departments")
+    .select("id, name, color")
+    .eq("organization_id", membership.organizationId)
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+
+  return (data as Array<{ id: string; name: string; color: string }>) || [];
+}
+

@@ -5,6 +5,8 @@ import { Shield, UserMinus, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MemberRoleBadge } from "./member-role-badge";
 import { EditProfileDialog } from "@/features/auth/components/edit-profile-dialog";
+import { AssignMemberDialog } from "@/features/departments/components/assign-member-dialog";
+import { getDepartmentColorClasses } from "@/features/departments/utils";
 import {
   updateMemberRole,
   removeMember,
@@ -17,12 +19,14 @@ interface MemberItemProps {
   currentUserId: string;
   isAdmin: boolean;
   isPresident: boolean;
+  departments?: Array<{ id: string; name: string; color: string }>;
 }
 
 export function MemberItem({
   member,
   currentUserId,
   isAdmin,
+  departments = [],
 }: MemberItemProps) {
   const [isPending, startTransition] = useTransition();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -76,6 +80,22 @@ export function MemberItem({
               </span>
             )}
             <MemberRoleBadge role={member.role} />
+
+            {member.departmentName && (
+              <span
+                className={`rounded-md px-2 py-0.5 text-[11px] font-medium border ${
+                  getDepartmentColorClasses(member.departmentColor).badge
+                }`}
+              >
+                {member.departmentName}
+              </span>
+            )}
+
+            {member.jobTitle && (
+              <span className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground/80 border border-border">
+                {member.jobTitle}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
             <span className="truncate">{member.email}</span>
@@ -91,7 +111,21 @@ export function MemberItem({
       </div>
 
       {isAdmin && !isMe && member.role !== "PRESIDENT" && (
-        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center flex-wrap">
+          {departments.length > 0 && (
+            <AssignMemberDialog
+              member={{
+                userId: member.userId,
+                name: member.name,
+                departmentId: member.departmentId,
+                jobTitle: member.jobTitle,
+              }}
+              departments={departments}
+              triggerLabel="부서/직책"
+              triggerVariant="outline"
+            />
+          )}
+
           {member.role === "MEMBER" ? (
             <Button
               type="button"

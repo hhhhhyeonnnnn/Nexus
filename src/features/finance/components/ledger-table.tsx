@@ -17,17 +17,26 @@ import { Button } from "@/components/ui/button";
 import { deleteLedgerEntry, type LedgerEntry } from "@/features/finance/actions";
 import { EditEntryDialog } from "./edit-entry-dialog";
 import { FINANCE_CATEGORIES } from "./create-entry-dialog";
+import { getDepartmentColorClasses } from "@/features/departments/utils";
 
 interface LedgerTableProps {
   entries: LedgerEntry[];
   vendors: Array<{ id: string; name: string }>;
   projects: Array<{ id: string; name: string }>;
+  departments?: Array<{ id: string; name: string; color: string }>;
   isAdmin: boolean;
 }
 
-export function LedgerTable({ entries, vendors, projects, isAdmin }: LedgerTableProps) {
+export function LedgerTable({
+  entries,
+  vendors,
+  projects,
+  departments = [],
+  isAdmin,
+}: LedgerTableProps) {
   const [typeFilter, setTypeFilter] = useState<"ALL" | "EXPENSE" | "INCOME">("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+  const [departmentFilter, setDepartmentFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -43,6 +52,11 @@ export function LedgerTable({ entries, vendors, projects, isAdmin }: LedgerTable
         return false;
       }
 
+      // Department filter
+      if (departmentFilter !== "ALL" && entry.department_id !== departmentFilter) {
+        return false;
+      }
+
       // Search query
       if (!searchQuery.trim()) return true;
 
@@ -51,10 +65,11 @@ export function LedgerTable({ entries, vendors, projects, isAdmin }: LedgerTable
       const matchCategory = (entry.category || "").toLowerCase().includes(q);
       const matchVendor = (entry.vendorName || "").toLowerCase().includes(q);
       const matchProject = (entry.projectName || "").toLowerCase().includes(q);
+      const matchDepartment = (entry.departmentName || "").toLowerCase().includes(q);
 
-      return matchTitle || matchCategory || matchVendor || matchProject;
+      return matchTitle || matchCategory || matchVendor || matchProject || matchDepartment;
     });
-  }, [entries, typeFilter, categoryFilter, searchQuery]);
+  }, [entries, typeFilter, categoryFilter, departmentFilter, searchQuery]);
 
   const handleDelete = (entry: LedgerEntry) => {
     if (!confirm(`'${entry.title}' 내역을 장부에서 삭제하시겠습니까?`)) {
@@ -109,7 +124,7 @@ export function LedgerTable({ entries, vendors, projects, isAdmin }: LedgerTable
         </div>
 
         {/* Filters and Search */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Category Dropdown */}
           <select
             value={categoryFilter}
@@ -124,6 +139,22 @@ export function LedgerTable({ entries, vendors, projects, isAdmin }: LedgerTable
             ))}
           </select>
 
+          {/* Department Dropdown */}
+          {departments.length > 0 && (
+            <select
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              className="h-8 px-2.5 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              <option value="ALL">전체 부서</option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={dept.id}>
+                  {dept.name}
+                </option>
+              ))}
+            </select>
+          )}
+
           {/* Search Box */}
           <div className="relative w-44 sm:w-56">
             <Search
@@ -133,7 +164,7 @@ export function LedgerTable({ entries, vendors, projects, isAdmin }: LedgerTable
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="적요, 거래처, 프로젝트 검색..."
+              placeholder="적요, 부서, 프로젝트 검색..."
               className="pl-8 h-8 text-xs bg-background"
             />
           </div>
@@ -150,6 +181,7 @@ export function LedgerTable({ entries, vendors, projects, isAdmin }: LedgerTable
                 <th className="py-2.5 px-3 whitespace-nowrap">구분</th>
                 <th className="py-2.5 px-3.5">적요 / 거래 항목</th>
                 <th className="py-2.5 px-3 whitespace-nowrap">카테고리</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">부서</th>
                 <th className="py-2.5 px-3 whitespace-nowrap">프로젝트</th>
                 <th className="py-2.5 px-3 whitespace-nowrap">거래처</th>
                 <th className="py-2.5 px-3.5 text-right whitespace-nowrap">금액 (원)</th>
@@ -160,7 +192,7 @@ export function LedgerTable({ entries, vendors, projects, isAdmin }: LedgerTable
             <tbody className="divide-y divide-border/60">
               {filteredEntries.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={10} className="py-12 text-center text-muted-foreground">
                     <Receipt className="mx-auto mb-2 text-muted-foreground/40" size={28} />
                     <p className="font-medium text-foreground">
                       {searchQuery || categoryFilter !== "ALL" || typeFilter !== "ALL"
@@ -214,6 +246,21 @@ export function LedgerTable({ entries, vendors, projects, isAdmin }: LedgerTable
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-muted text-muted-foreground border border-border/50">
                           {entry.category || "기타"}
                         </span>
+                      </td>
+
+                      {/* Department */}
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        {entry.departmentName ? (
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium border ${
+                              getDepartmentColorClasses(entry.departmentColor).badge
+                            }`}
+                          >
+                            {entry.departmentName}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground/40">-</span>
+                        )}
                       </td>
 
                       {/* Project */}
@@ -277,6 +324,7 @@ export function LedgerTable({ entries, vendors, projects, isAdmin }: LedgerTable
                             entry={entry}
                             vendors={vendors}
                             projects={projects}
+                            departments={departments}
                           />
                           {isAdmin && (
                             <Button

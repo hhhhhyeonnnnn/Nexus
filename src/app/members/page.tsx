@@ -5,10 +5,12 @@ import {
   getOrganizationMembersDetailed,
   getPendingJoinRequestsForCurrentOrg,
 } from "@/features/organizations/actions";
+import { getDepartmentsWithMembers } from "@/features/departments/actions";
 import { MembersTabs } from "@/features/organizations/components/members-tabs";
 import { MemberItem } from "@/features/organizations/components/member-item";
 import { JoinRequestItem } from "@/features/organizations/components/join-request-item";
 import { MemberRoleBadge } from "@/features/organizations/components/member-role-badge";
+import { OrgChartView } from "@/features/departments/components/org-chart-view";
 
 export const metadata: Metadata = {
   title: "구성원 관리",
@@ -22,9 +24,18 @@ export default async function MembersPage({
   searchParams: Promise<{ tab?: string }>;
 }) {
   const params = await searchParams;
-  const currentTab = params.tab === "requests" ? "requests" : "members";
+  const rawTab = params.tab;
+  const currentTab =
+    rawTab === "requests"
+      ? "requests"
+      : rawTab === "org-chart"
+        ? "org-chart"
+        : "members";
 
-  const data = await getOrganizationMembersDetailed();
+  const [data, orgChartData] = await Promise.all([
+    getOrganizationMembersDetailed(),
+    getDepartmentsWithMembers(),
+  ]);
 
   if (!data.organization) {
     redirect("/onboarding");
@@ -61,6 +72,7 @@ export default async function MembersPage({
       <MembersTabs
         memberCount={data.members.length}
         pendingCount={data.pendingRequestsCount}
+        departmentCount={orgChartData.departments.length}
         isAdmin={data.isAdmin}
       />
 
@@ -71,7 +83,7 @@ export default async function MembersPage({
             <span>등록된 구성원 ({data.members.length}명)</span>
             {data.isAdmin && (
               <span className="text-[11px] text-muted-foreground">
-                관리자는 구성원의 역할을 변경하거나 내보낼 수 있습니다.
+                관리자는 구성원의 역할을 변경하거나 부서/직책을 설정할 수 있습니다.
               </span>
             )}
           </div>
@@ -91,11 +103,18 @@ export default async function MembersPage({
                   currentUserId={data.currentUserId}
                   isAdmin={data.isAdmin}
                   isPresident={isPresident}
+                  departments={orgChartData.departments.map((d) => ({
+                    id: d.id,
+                    name: d.name,
+                    color: d.color,
+                  }))}
                 />
               ))}
             </div>
           )}
         </div>
+      ) : currentTab === "org-chart" ? (
+        <OrgChartView data={orgChartData} currentUserId={data.currentUserId} />
       ) : (
         <div className="space-y-4">
           {!data.isAdmin ? (

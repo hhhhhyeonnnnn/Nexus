@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Calendar, Trash2, User } from "lucide-react";
 import { TaskStatusChip } from "@/features/tasks/components/task-status-chip";
 import { updateTaskStatus, deleteTask, type TaskWithDetails } from "@/features/tasks/actions";
+import { getDepartmentColorClasses } from "@/features/departments/utils";
 
 export function TaskItem({
   task,
@@ -66,6 +67,15 @@ export function TaskItem({
               {task.title}
             </span>
             <TaskStatusChip status={task.status} />
+            {task.departments && (
+              <span
+                className={`rounded px-1.5 py-0.5 text-xs font-medium border ${
+                  getDepartmentColorClasses(task.departments.color).badge
+                }`}
+              >
+                {task.departments.name}
+              </span>
+            )}
             {showProject && task.projects && (
               <Link
                 href={`/projects/${task.projects.id}`}

@@ -521,6 +521,10 @@ export interface OrganizationMemberDetailed {
   name: string;
   email: string;
   createdAt: string;
+  departmentId: string | null;
+  departmentName: string | null;
+  departmentColor: string | null;
+  jobTitle: string | null;
 }
 
 export interface MembersPageData {
@@ -572,18 +576,27 @@ export async function getOrganizationMembersDetailed(): Promise<MembersPageData>
   // 2. Get all members in this organization
   const { data: rawMembers, error } = await supabase
     .from("organization_members")
-    .select("user_id, role, profiles(id, name, email, created_at)")
+    .select(
+      "user_id, role, department_id, job_title, departments(id, name, color), profiles(id, name, email, created_at)",
+    )
     .eq("organization_id", orgId);
 
   if (error || !rawMembers) return empty;
 
-  const members: OrganizationMemberDetailed[] = rawMembers.map((m) => ({
-    userId: m.user_id,
-    role: m.role,
-    name: m.profiles?.name || m.profiles?.email?.split("@")[0] || "이름 미설정",
-    email: m.profiles?.email ?? "",
-    createdAt: m.profiles?.created_at ?? "",
-  }));
+  const members: OrganizationMemberDetailed[] = rawMembers.map((m) => {
+    const dept = m.departments as { id: string; name: string; color: string } | null;
+    return {
+      userId: m.user_id,
+      role: m.role,
+      name: m.profiles?.name || m.profiles?.email?.split("@")[0] || "이름 미설정",
+      email: m.profiles?.email ?? "",
+      createdAt: m.profiles?.created_at ?? "",
+      departmentId: m.department_id,
+      departmentName: dept?.name ?? null,
+      departmentColor: dept?.color ?? null,
+      jobTitle: m.job_title,
+    };
+  });
 
   // 3. If admin, count pending join requests
   let pendingRequestsCount = 0;

@@ -19,6 +19,7 @@ export type Database = {
           actual_amount: number
           category: string | null
           created_at: string
+          department_id: string | null
           id: string
           organization_id: string
           planned_amount: number
@@ -33,6 +34,7 @@ export type Database = {
           actual_amount?: number
           category?: string | null
           created_at?: string
+          department_id?: string | null
           id?: string
           organization_id: string
           planned_amount?: number
@@ -47,6 +49,7 @@ export type Database = {
           actual_amount?: number
           category?: string | null
           created_at?: string
+          department_id?: string | null
           id?: string
           organization_id?: string
           planned_amount?: number
@@ -77,6 +80,13 @@ export type Database = {
             columns: ["organization_id", "vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "budgets_organization_id_department_id_fkey"
+            columns: ["organization_id", "department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
             referencedColumns: ["organization_id", "id"]
           },
         ]
@@ -133,6 +143,44 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      departments: {
+        Row: {
+          color: string
+          created_at: string
+          description: string
+          id: string
+          name: string
+          organization_id: string
+          sort_order: number
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string
+          id?: string
+          name: string
+          organization_id: string
+          sort_order?: number
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+          organization_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -382,16 +430,22 @@ export type Database = {
       }
       organization_members: {
         Row: {
+          department_id: string | null
+          job_title: string | null
           organization_id: string
           role: Database["public"]["Enums"]["organization_role"]
           user_id: string
         }
         Insert: {
+          department_id?: string | null
+          job_title?: string | null
           organization_id: string
           role?: Database["public"]["Enums"]["organization_role"]
           user_id: string
         }
         Update: {
+          department_id?: string | null
+          job_title?: string | null
           organization_id?: string
           role?: Database["public"]["Enums"]["organization_role"]
           user_id?: string
@@ -410,6 +464,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_members_org_department_fkey"
+            columns: ["organization_id", "department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["organization_id", "id"]
           },
         ]
       }
@@ -503,6 +564,7 @@ export type Database = {
         Row: {
           assignee_id: string | null
           created_at: string
+          department_id: string | null
           description: string
           due_date: string | null
           id: string
@@ -514,6 +576,7 @@ export type Database = {
         Insert: {
           assignee_id?: string | null
           created_at?: string
+          department_id?: string | null
           description?: string
           due_date?: string | null
           id?: string
@@ -525,6 +588,7 @@ export type Database = {
         Update: {
           assignee_id?: string | null
           created_at?: string
+          department_id?: string | null
           description?: string
           due_date?: string | null
           id?: string
@@ -553,6 +617,13 @@ export type Database = {
             columns: ["organization_id", "project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "tasks_organization_id_department_id_fkey"
+            columns: ["organization_id", "department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
             referencedColumns: ["organization_id", "id"]
           },
         ]
