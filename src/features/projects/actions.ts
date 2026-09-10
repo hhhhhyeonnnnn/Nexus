@@ -117,6 +117,146 @@ export async function getDashboardProjectSummaries() {
   };
 }
 
+export async function getDashboardBudgetSummary() {
+  if (!getSupabaseConfig()) {
+    return { totalIncome: 0, totalExpense: 0, balance: 0 };
+  }
+
+  const membership = await getCurrentUserOrganization();
+  if (!membership) {
+    return { totalIncome: 0, totalExpense: 0, balance: 0 };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("budgets")
+    .select("type, actual_amount")
+    .eq("organization_id", membership.organizationId);
+
+  if (error || !data) {
+    return { totalIncome: 0, totalExpense: 0, balance: 0 };
+  }
+
+  const totalIncome = data
+    .filter((b) => b.type === "INCOME")
+    .reduce((sum, b) => sum + (b.actual_amount ?? 0), 0);
+  const totalExpense = data
+    .filter((b) => b.type === "EXPENSE")
+    .reduce((sum, b) => sum + (b.actual_amount ?? 0), 0);
+
+  return { totalIncome, totalExpense, balance: totalIncome - totalExpense };
+}
+
+export type ActivityItem = {
+  type: "task" | "meeting" | "decision" | "budget";
+  title: string;
+  subtitle: string | null;
+  href: string;
+  createdAt: string;
+};
+
+export async function getDashboardActivityFeed(): Promise<ActivityItem[]> {
+  if (!getSupabaseConfig()) return [];
+
+  const membership = await getCurrentUserOrganization();
+  if (!membership) return [];
+
+  const supabase = await createClient();
+  const orgId = membership.organizationId;
+
+  const [tasks, meetings, decisions, budgets] = await Promise.all([
+    supabase
+      .from("tasks")
+      .select("id, title, project_id, created_at, projects(name)")
+      .eq("organization_id", orgId)
+      .order("created_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("meetings")
+      .select("id, title, created_at, projects(name)")
+      .eq("organization_id", orgId)
+      .order("created_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("decisions")
+      .select("id, title, decided_at, projects(name)")
+      .eq("organization_id", orgId)
+      .order("decided_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("budgets")
+      .select("id, title, type, created_at, projects(name)")
+      .eq("organization_id", orgId)
+      .order("created_at", { ascending: false })
+      .limit(5),
+  ]);
+
+  const items: ActivityItem[] = [
+    ...(tasks.data ?? []).map((t) => ({
+      type: "task" as const,
+      title: t.title,
+      subtitle: (t.projects as { name: string } | null)?.name ?? null,
+      href: t.project_id ? `/projects/${t.project_id}` : "/tasks",
+      createdAt: t.created_at,
+    })),
+    ...(meetings.data ?? []).map((m) => ({
+      type: "meeting" as const,
+      title: m.title,
+      subtitle: (m.projects as { name: string } | null)?.name ?? null,
+      href: `/meetings/${m.id}`,
+      createdAt: m.created_at,
+    })),
+    ...(decisions.data ?? []).map((d) => ({
+      type: "decision" as const,
+      title: d.title,
+      subtitle: (d.projects as { name: string } | null)?.name ?? null,
+      href: `/meetings`,
+      createdAt: d.decided_at ?? new Date(0).toISOString(),
+    })),
+    ...(budgets.data ?? []).map((b) => ({
+      type: "budget" as const,
+      title: b.title,
+      subtitle: (b.type === "INCOME" ? "수입" : "지출") + ((b.projects as { name: string } | null)?.name ? ` · ${(b.projects as { name: string }).name}` : ""),
+      href: "/finance",
+      createdAt: b.created_at,
+    })),
+  ];
+
+  return items
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 10);
+}
+
+export async function getProjectBudgetSummary(projectId: string) {
+  if (!getSupabaseConfig()) {
+    return { plannedAmount: 0, actualAmount: 0, executionRate: 0 };
+  }
+
+  const membership = await getCurrentUserOrganization();
+  if (!membership) {
+    return { plannedAmount: 0, actualAmount: 0, executionRate: 0 };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("budgets")
+    .select("planned_amount, actual_amount, type")
+    .eq("organization_id", membership.organizationId)
+    .eq("project_id", projectId);
+
+  if (error || !data || data.length === 0) {
+    return { plannedAmount: 0, actualAmount: 0, executionRate: 0 };
+  }
+
+  // Only expense items for execution rate
+  const expenses = data.filter((b) => b.type === "EXPENSE");
+  const plannedAmount = expenses.reduce((sum, b) => sum + (b.planned_amount ?? 0), 0);
+  const actualAmount = expenses.reduce((sum, b) => sum + (b.actual_amount ?? 0), 0);
+  const executionRate = plannedAmount > 0 ? Math.min(100, (actualAmount / plannedAmount) * 100) : 0;
+
+  return { plannedAmount, actualAmount, executionRate };
+}
+
 // ---------------------------------------------------------------------------
 // Mutations
 // ---------------------------------------------------------------------------
