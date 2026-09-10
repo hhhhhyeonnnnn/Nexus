@@ -19,11 +19,13 @@ import {
   getCurrentUserOrganization,
   getDashboardBudgetSummary,
   getDashboardActivityFeed,
+  getDashboardControlTowerMetrics,
   type ActivityItem,
 } from "@/features/projects/actions";
 import { getDashboardTaskSummaries } from "@/features/tasks/actions";
 import { getDashboardMeetingSummaries } from "@/features/meetings/actions";
 import { TaskItem } from "@/features/tasks/components/task-item";
+import { ControlTowerStrip } from "@/features/dashboard/components/control-tower-strip";
 
 export const metadata: Metadata = { title: "대시보드" };
 export const dynamic = "force-dynamic";
@@ -63,15 +65,23 @@ const activityLabelMap: Record<ActivityItem["type"], string> = {
 };
 
 export default async function DashboardPage() {
-  const [projectSummaries, taskSummaries, membership, budgetSummary, meetingSummaries, activityFeed] =
-    await Promise.all([
-      getDashboardProjectSummaries(),
-      getDashboardTaskSummaries(),
-      getCurrentUserOrganization(),
-      getDashboardBudgetSummary(),
-      getDashboardMeetingSummaries(),
-      getDashboardActivityFeed(),
-    ]);
+  const [
+    projectSummaries,
+    taskSummaries,
+    membership,
+    budgetSummary,
+    meetingSummaries,
+    activityFeed,
+    controlTowerMetrics,
+  ] = await Promise.all([
+    getDashboardProjectSummaries(),
+    getDashboardTaskSummaries(),
+    getCurrentUserOrganization(),
+    getDashboardBudgetSummary(),
+    getDashboardMeetingSummaries(),
+    getDashboardActivityFeed(),
+    getDashboardControlTowerMetrics(),
+  ]);
 
   const orgName = membership?.organization.name ?? "학생회 워크스페이스";
   const balancePositive = budgetSummary.balance >= 0;
@@ -88,6 +98,9 @@ export default async function DashboardPage() {
         </div>
         <CreateProjectDialog />
       </div>
+
+      {/* Control Tower Strip */}
+      <ControlTowerStrip metrics={controlTowerMetrics} />
 
       {/* Metric Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

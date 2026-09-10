@@ -20,10 +20,6 @@ import {
 import { StatusChip } from "@/components/common/status-chip";
 import { cn } from "@/lib/utils";
 
-const upcomingNavigation = [
-  { label: "AI 어시스턴트", icon: Sparkles },
-];
-
 export function Sidebar() {
   const pathname = usePathname();
 
@@ -53,12 +49,13 @@ export function Sidebar() {
 
       <button
         type="button"
-        disabled
-        className="flex h-9 items-center gap-2 rounded-md border bg-background px-2 text-xs text-muted-foreground"
-        aria-label="빠른 검색, 준비 중"
+        onClick={() => window.dispatchEvent(new CustomEvent("open-command-palette"))}
+        className="flex h-9 items-center gap-2 rounded-md border bg-background px-2.5 text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors cursor-pointer"
+        aria-label="빠른 검색 (단축키: Cmd+K)"
       >
         <Search size={16} aria-hidden="true" />
-        빠른 검색<span className="ml-auto text-xs">준비 중</span>
+        <span>빠른 검색</span>
+        <span className="ml-auto rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">⌘K</span>
       </button>
 
       <nav aria-label="주 메뉴" className="flex flex-col gap-1">
@@ -205,19 +202,18 @@ export function Sidebar() {
           소통·피드
         </Link>
 
-        {upcomingNavigation.map(({ label, icon: Icon }) => (
-          <button
-            key={label}
-            type="button"
-            disabled
-            className="flex h-9 items-center gap-3 rounded-md px-2 text-left text-sm font-medium text-muted-foreground/60 cursor-not-allowed"
-            aria-label={`${label}, 준비 중`}
-            title="준비 중"
-          >
-            <Icon size={18} aria-hidden="true" />
-            {label}
-          </button>
-        ))}
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent("open-assistant"))}
+          className="flex h-9 items-center gap-3 rounded-md px-2 text-left text-sm font-medium text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
+          aria-label="Nexus AI 어시스턴트 열기"
+        >
+          <Sparkles size={18} className="text-primary shrink-0" aria-hidden="true" />
+          <span>AI 어시스턴트</span>
+          <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+            AI
+          </span>
+        </button>
       </nav>
 
       <div className="space-y-3 text-xs text-muted-foreground">

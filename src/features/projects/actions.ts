@@ -379,3 +379,65 @@ export async function deleteProject(projectId: string): Promise<ActionState> {
   revalidatePath("/dashboard");
   return { error: null, success: true };
 }
+
+export interface ControlTowerMetrics {
+  pendingApprovalsCount: number;
+  missingReceiptsCount: number;
+  openFormsCount: number;
+  totalSubmissionsCount: number;
+  pendingPetitionsCount: number;
+}
+
+export async function getDashboardControlTowerMetrics(): Promise<ControlTowerMetrics> {
+  const fallback: ControlTowerMetrics = {
+    pendingApprovalsCount: 0,
+    missingReceiptsCount: 0,
+    openFormsCount: 0,
+    totalSubmissionsCount: 0,
+    pendingPetitionsCount: 0,
+  };
+
+  if (!getSupabaseConfig()) return fallback;
+  const membership = await getCurrentUserOrganization();
+  if (!membership) return fallback;
+
+  const supabase = await createClient();
+  const orgId = membership.organizationId;
+
+  const [approvalsRes, budgetsRes, formsRes, submissionsRes, petitionsRes] = await Promise.all([
+    supabase
+      .from("approvals")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId)
+      .eq("status", "PENDING"),
+    supabase
+      .from("budgets")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId)
+      .eq("type", "EXPENSE")
+      .is("receipt_url", null),
+    supabase
+      .from("event_forms")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId)
+      .eq("status", "OPEN"),
+    supabase
+      .from("form_submissions")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId),
+    supabase
+      .from("petitions")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId)
+      .eq("status", "PENDING"),
+  ]);
+
+  return {
+    pendingApprovalsCount: approvalsRes.count ?? 0,
+    missingReceiptsCount: budgetsRes.count ?? 0,
+    openFormsCount: formsRes.count ?? 0,
+    totalSubmissionsCount: submissionsRes.count ?? 0,
+    pendingPetitionsCount: petitionsRes.count ?? 0,
+  };
+}
+

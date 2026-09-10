@@ -248,6 +248,17 @@ export async function approveApprovalStep(
     revalidatePath("/finance");
   }
 
+  if (current.applicant_id) {
+    await supabase.from("notifications").insert({
+      organization_id: membership.organizationId,
+      user_id: current.applicant_id,
+      title: isFinalStep ? "결재 최종 승인" : `결재 ${currentStepNum}단계 승인`,
+      message: `[${current.title}] 결재 문서가 ${isFinalStep ? "최종 승인되었습니다." : `${currentStepNum}단계 승인되었습니다.`}`,
+      type: "APPROVAL",
+      link_url: "/approvals",
+    });
+  }
+
   revalidatePath("/approvals");
   return { error: null, success: true };
 }
@@ -275,6 +286,13 @@ export async function rejectApproval(
 
   const approverName = profile?.name || "결재권자";
 
+  const { data: current } = await supabase
+    .from("approvals")
+    .select("title, applicant_id")
+    .eq("organization_id", membership.organizationId)
+    .eq("id", approvalId)
+    .single();
+
   const { error: updateErr } = await supabase
     .from("approvals")
     .update({
@@ -298,6 +316,17 @@ export async function rejectApproval(
     action: "REJECT",
     comment: rejectReason.trim(),
   });
+
+  if (current?.applicant_id) {
+    await supabase.from("notifications").insert({
+      organization_id: membership.organizationId,
+      user_id: current.applicant_id,
+      title: "결재 문서 반려",
+      message: `[${current.title}] 결재 문서가 반려되었습니다: ${rejectReason.trim()}`,
+      type: "WARNING",
+      link_url: "/approvals",
+    });
+  }
 
   revalidatePath("/approvals");
   return { error: null, success: true };
