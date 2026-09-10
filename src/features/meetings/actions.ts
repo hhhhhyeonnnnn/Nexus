@@ -11,6 +11,10 @@ import {
   type MeetingTaskCandidate,
   type MeetingDecisionCandidate,
 } from "@/lib/ai/analyze-meeting";
+import {
+  clarifyTranscriptWithAI,
+  type TranscriptClarificationResult,
+} from "@/lib/ai/clarify-transcript";
 
 export type MeetingRow = Database["public"]["Tables"]["meetings"]["Row"];
 export type DecisionRow = Database["public"]["Tables"]["decisions"]["Row"];
@@ -622,3 +626,108 @@ export async function batchCreateDecisionsFromMeeting(
 
   return { error: null, count: rows.length, success: true };
 }
+
+// ---------------------------------------------------------------------------
+// Real-time STT & AI Context Clarification
+// ---------------------------------------------------------------------------
+
+export async function runTranscriptClarification(
+  meetingId: string,
+  transcript: string,
+): Promise<{
+  error: string | null;
+  data?: TranscriptClarificationResult;
+}> {
+  const membership = await getCurrentUserOrganization();
+  if (!membership) {
+    return { error: "학생회 조직 정보를 찾을 수 없습니다." };
+  }
+
+  const supabase = await createClient();
+
+  // Fetch meeting, departments, members
+  const [meetingRes, deptsRes, membersRes] = await Promise.all([
+    supabase
+      .from("meetings")
+      .select("title, projects(name)")
+      .eq("organization_id", membership.organizationId)
+      .eq("id", meetingId)
+      .single(),
+    supabase
+      .from("departments")
+      .select("name")
+      .eq("organization_id", membership.organizationId),
+    supabase
+      .from("organization_members")
+      .select("profiles(name, email)")
+      .eq("organization_id", membership.organizationId),
+  ]);
+
+  const meeting = meetingRes.data;
+  const projectName = (meeting?.projects as { name: string } | null)?.name ?? null;
+  const departments = (deptsRes.data ?? []).map((d) => d.name);
+  const members = (membersRes.data ?? [])
+    .map((m) => {
+      const p = m.profiles as { name: string; email: string } | null;
+      return p?.name || p?.email?.split("@")[0] || "";
+    })
+    .filter(Boolean);
+
+  const aiRes = await clarifyTranscriptWithAI({
+    transcript,
+    meetingTitle: meeting?.title,
+    projectName,
+    departments,
+    members,
+  });
+
+  if (!aiRes.success) {
+    return { error: aiRes.error };
+  }
+
+  return { error: null, data: aiRes.data };
+}
+
+export async function saveTranscriptToMeeting(
+  meetingId: string,
+  content: string,
+  mode: "replace" | "append",
+): Promise<{ error: string | null; success?: boolean }> {
+  const membership = await getCurrentUserOrganization();
+  if (!membership) {
+    return { error: "학생회 조직 정보를 찾을 수 없습니다." };
+  }
+
+  const supabase = await createClient();
+  const { data: existing, error: fetchErr } = await supabase
+    .from("meetings")
+    .select("content")
+    .eq("organization_id", membership.organizationId)
+    .eq("id", meetingId)
+    .single();
+
+  if (fetchErr || !existing) {
+    return { error: "회의록 정보를 불러오지 못했습니다." };
+  }
+
+  const newContent =
+    mode === "append" && existing.content && existing.content.trim().length > 0
+      ? `${existing.content.trim()}\n\n---\n\n${content.trim()}`
+      : content.trim();
+
+  const { error: updateErr } = await supabase
+    .from("meetings")
+    .update({ content: newContent })
+    .eq("organization_id", membership.organizationId)
+    .eq("id", meetingId);
+
+  if (updateErr) {
+    return { error: "회의록 저장 중 오류가 발생했습니다: " + updateErr.message };
+  }
+
+  revalidatePath("/meetings");
+  revalidatePath(`/meetings/${meetingId}`);
+  revalidatePath("/dashboard");
+  return { error: null, success: true };
+}
+

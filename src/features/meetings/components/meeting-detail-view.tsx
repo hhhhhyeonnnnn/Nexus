@@ -20,6 +20,7 @@ import { deleteMeeting, type MeetingWithStats } from "@/features/meetings/action
 import type { DecisionRow } from "@/features/meetings/actions";
 import { EditMeetingDialog } from "./edit-meeting-dialog";
 import { AiAnalysisDialog } from "./ai-analysis-dialog";
+import { RealtimeSttDialog } from "./realtime-stt-dialog";
 import { CreateDecisionDialog } from "@/features/decisions/components/create-decision-dialog";
 import { DecisionCard } from "@/features/decisions/components/decision-card";
 
@@ -116,6 +117,13 @@ export function MeetingDetailView({
 
           {/* Action buttons */}
           <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <RealtimeSttDialog
+              meetingId={meeting.id}
+              meetingTitle={meeting.title}
+              hasExistingContent={!!meeting.content && meeting.content.trim().length > 0}
+              buttonLabel="실시간 음성 기록"
+              buttonVariant="outline"
+            />
             <AiAnalysisDialog
               meetingId={meeting.id}
               projectId={meeting.project_id}
@@ -265,9 +273,20 @@ export function MeetingDetailView({
               {meeting.content}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground italic py-4">
-              회의 내용이 작성되지 않았습니다. 상단의 [회의록 수정] 버튼을 눌러 내용을 작성해 보세요.
-            </p>
+            <div className="py-8 text-center space-y-3">
+              <p className="text-xs text-muted-foreground italic">
+                아직 회의 내용이 작성되지 않았습니다. 실시간 음성 기록을 시작하거나 직접 작성해 보세요.
+              </p>
+              <div className="flex justify-center gap-2">
+                <RealtimeSttDialog
+                  meetingId={meeting.id}
+                  meetingTitle={meeting.title}
+                  hasExistingContent={false}
+                  buttonLabel="마이크로 실시간 회의 받아적기"
+                  buttonVariant="default"
+                />
+              </div>
+            </div>
           )
         ) : (
           <div
