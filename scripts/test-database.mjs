@@ -5,7 +5,7 @@ import { PGlite } from "@electric-sql/pglite";
 
 const db = new PGlite();
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const tenantTables = ["organization_members", "projects", "tasks", "meetings", "decisions", "events", "budgets", "vendors", "files"];
+const tenantTables = ["organization_members", "projects", "tasks", "meetings", "decisions", "events", "budgets", "vendors", "files", "departments"];
 const allTables = ["organizations", ...tenantTables, "profiles", "organization_creation_requests", "organization_join_requests"];
 
 before(async () => {
@@ -30,20 +30,22 @@ before(async () => {
   await db.exec(await readFile(new URL("../supabase/migrations/20260909600000_calendar_vendors_finance.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260910000000_meetings_and_decisions.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260910100000_meetings_ai_summary.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../supabase/migrations/20260910200000_departments_and_org_chart.sql", import.meta.url), "utf8"));
 
   for (const n of [1, 2]) {
     await db.exec(`
       insert into auth.users values ('${id(n)}');
       insert into public.profiles(id, name, email) values ('${id(n)}', 'Member ${n}', 'member${n}@example.test');
       insert into public.organizations(id, name, university_name) values ('${id(n)}', 'Org ${n}', 'University');
-      insert into public.organization_members values ('${id(n)}', '${id(n)}', 'MEMBER');
+      insert into public.departments(id, organization_id, name) values ('${id(n)}', '${id(n)}', 'Department ${n}');
+      insert into public.organization_members(organization_id, user_id, role, department_id, job_title) values ('${id(n)}', '${id(n)}', 'MEMBER', '${id(n)}', 'Lead');
       insert into public.projects(id, organization_id, name) values ('${id(n)}', '${id(n)}', 'Project');
-      insert into public.tasks(organization_id, project_id, assignee_id, title) values ('${id(n)}', '${id(n)}', '${id(n)}', 'Task');
+      insert into public.tasks(organization_id, project_id, assignee_id, department_id, title) values ('${id(n)}', '${id(n)}', '${id(n)}', '${id(n)}', 'Task');
       insert into public.meetings(id, organization_id, project_id, title, meeting_date) values ('${id(n)}', '${id(n)}', '${id(n)}', 'Meeting', now());
       insert into public.decisions(organization_id, project_id, meeting_id, title, content) values ('${id(n)}', '${id(n)}', '${id(n)}', 'Decision', 'Confirmed');
       insert into public.events(organization_id, project_id, title, start_at, end_at) values ('${id(n)}', '${id(n)}', 'Event', now(), now());
       insert into public.vendors(id, organization_id, name) values ('${id(n)}', '${id(n)}', 'Vendor');
-      insert into public.budgets(organization_id, project_id, vendor_id, title) values ('${id(n)}', '${id(n)}', '${id(n)}', 'Budget');
+      insert into public.budgets(organization_id, project_id, vendor_id, department_id, title) values ('${id(n)}', '${id(n)}', '${id(n)}', '${id(n)}', 'Budget');
       insert into public.files(organization_id, project_id, title, external_url) values ('${id(n)}', '${id(n)}', 'Document', 'https://example.test/document');
     `);
   }
@@ -51,9 +53,9 @@ before(async () => {
 
 after(async () => { await db.close(); });
 
-test("all 13 tables have RLS enabled", async () => {
+test("all 14 tables have RLS enabled", async () => {
   const { rows } = await db.query("select relname, relrowsecurity from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r'");
-  assert.equal(rows.length, 13);
+  assert.equal(rows.length, 14);
   assert.ok(rows.every((row) => row.relrowsecurity));
 });
 
@@ -449,6 +451,55 @@ test("organization member can create and update decisions, but only admin can de
     await db.exec("reset role");
     await db.exec(`update public.organization_members set role = 'MEMBER' where organization_id = '${id(2)}' and user_id = '${id(2)}'`);
     await db.exec(`delete from public.meetings where id = '${id(75)}'`);
+  }
+});
+
+test("organization admin can create, update, and delete departments while regular member is denied writes", async () => {
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+  try {
+    // 1. Member 2 (regular MEMBER) tries to insert department -> DENIED
+    await assert.rejects(
+      async () => {
+        await db.query(`
+          insert into public.departments(id, organization_id, name, description)
+          values ('${id(90)}', '${id(2)}', 'Planning Dept', 'Events')
+        `);
+      },
+      /new row violates row-level security policy/i
+    );
+
+    // 2. Promote Member 2 to ADMIN of Org 2
+    await db.exec("reset role");
+    await db.exec(`update public.organization_members set role = 'ADMIN' where organization_id = '${id(2)}' and user_id = '${id(2)}'`);
+    await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+
+    // 3. Admin Member 2 inserts department -> SUCCESS
+    await db.query(`
+      insert into public.departments(id, organization_id, name, description)
+      values ('${id(90)}', '${id(2)}', 'Planning Dept', 'Events')
+    `);
+
+    // 4. Admin Member 2 updates department -> SUCCESS
+    await db.query(`update public.departments set description = 'Festivals' where id = '${id(90)}'`);
+    const { rows } = await db.query(`select description from public.departments where id = '${id(90)}'`);
+    assert.equal(rows[0].description, "Festivals");
+
+    // 5. Demote to MEMBER and try to delete -> DENIED (0 rowCount)
+    await db.exec("reset role");
+    await db.exec(`update public.organization_members set role = 'MEMBER' where organization_id = '${id(2)}' and user_id = '${id(2)}'`);
+    await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+    const { rowCount: memberDel } = await db.query(`delete from public.departments where id = '${id(90)}'`);
+    assert.equal(memberDel, 0);
+
+    // 6. Admin deletes -> SUCCESS
+    await db.exec("reset role");
+    await db.exec(`update public.organization_members set role = 'ADMIN' where organization_id = '${id(2)}' and user_id = '${id(2)}'`);
+    await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(2)}';`);
+    const { rowCount: adminDel } = await db.query(`delete from public.departments where id = '${id(90)}'`);
+    assert.equal(adminDel, 1);
+  } finally {
+    await db.exec("reset role");
+    await db.exec(`update public.organization_members set role = 'MEMBER' where organization_id = '${id(2)}' and user_id = '${id(2)}'`);
   }
 });
 

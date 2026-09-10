@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { CheckSquare } from "lucide-react";
-import { getTasks, getOrganizationMembersList } from "@/features/tasks/actions";
+import { getTasks, getOrganizationMembersList, getOrganizationDepartmentsList } from "@/features/tasks/actions";
 import { getProjects } from "@/features/projects/actions";
 import { TaskItem } from "@/features/tasks/components/task-item";
 import { CreateTaskDialog } from "@/features/tasks/components/create-task-dialog";
@@ -18,15 +18,20 @@ type TaskStatus = Database["public"]["Enums"]["task_status"];
 export default async function TasksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; projectId?: string }>;
+  searchParams: Promise<{ status?: string; projectId?: string; departmentId?: string }>;
 }) {
   const params = await searchParams;
   const statusFilter = params.status as TaskStatus | undefined;
 
-  const [tasks, projects, members] = await Promise.all([
-    getTasks({ status: statusFilter, projectId: params.projectId }),
+  const [tasks, projects, members, departments] = await Promise.all([
+    getTasks({
+      status: statusFilter,
+      projectId: params.projectId,
+      departmentId: params.departmentId,
+    }),
     getProjects("ALL"),
     getOrganizationMembersList(),
+    getOrganizationDepartmentsList(),
   ]);
 
   return (
@@ -39,7 +44,7 @@ export default async function TasksPage({
             학생회의 실행 업무를 담당자별, 마감일별로 한눈에 파악하고 챙기세요.
           </p>
         </div>
-        <CreateTaskDialog projects={projects} members={members} />
+        <CreateTaskDialog projects={projects} members={members} departments={departments} />
       </div>
 
       {/* Filter Tabs */}
@@ -58,7 +63,7 @@ export default async function TasksPage({
               : "새로운 업무를 등록하고 담당자를 지정하여 협업을 시작하세요."}
           </p>
           <div className="mt-4">
-            <CreateTaskDialog projects={projects} members={members} />
+            <CreateTaskDialog projects={projects} members={members} departments={departments} />
           </div>
         </div>
       ) : (

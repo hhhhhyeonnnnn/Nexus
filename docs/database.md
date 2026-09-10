@@ -16,11 +16,12 @@
 | meetings | 조직, 선택 프로젝트, 회의록, 회의 일시 |
 | decisions | 조직, 선택 프로젝트/회의, 결정 내용, 선택 이유, 결정 일시 |
 | events | 조직, 선택 프로젝트, 시작/종료 일시 (Phase 2) |
-| budgets | 조직, 선택 프로젝트/업체, 계획/실제 금액 (Phase 2) |
-| vendors | 조직별 업체 연락처, 평가, 메모 (Phase 2) |
+| budgets | 조직, 선택 프로젝트/업체/부서, 계획/실제 금액 |
+| vendors | 조직별 업체 연락처, 평가, 메모 |
 | files | 조직, 선택 프로젝트, HTTPS 외부 문서 URL (Phase 3) |
+| departments | 조직별 부서(집행국)명, 설명, 색상, 정렬 순서 |
 
-전체 11개 테이블입니다. UUID PK는 `gen_random_uuid()`를 사용합니다. 프로젝트에 속하지 않은 조직 업무도 허용하도록 `project_id`는 nullable입니다. 회의/결정 같은 조직 기록은 일반 삭제 시 참조 무결성이 유지되도록 FK의 기본 NO ACTION을 사용합니다. 조직/구성원 삭제·탈퇴·보존 정책은 Auth/조직 Issue에서 별도 결정합니다.
+전체 14개 테이블입니다 (조직 생성/가입 신청 테이블 포함). UUID PK는 `gen_random_uuid()`를 사용합니다. 프로젝트 및 부서에 속하지 않은 조직 업무도 허용하도록 `project_id`, `department_id`는 nullable입니다. 회의/결정 같은 조직 기록은 일반 삭제 시 참조 무결성이 유지되도록 FK의 기본 NO ACTION을 사용합니다. 부서 삭제 시 소속 구성원/업무/예산의 부서 정보는 ON DELETE SET NULL로 보존됩니다.
 
 ## 타입과 제약
 

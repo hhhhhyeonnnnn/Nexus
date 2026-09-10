@@ -20,9 +20,14 @@ export const FINANCE_CATEGORIES = [
 interface CreateEntryDialogProps {
   vendors: Array<{ id: string; name: string }>;
   projects: Array<{ id: string; name: string }>;
+  departments?: Array<{ id: string; name: string; color: string }>;
 }
 
-export function CreateEntryDialog({ vendors, projects }: CreateEntryDialogProps) {
+export function CreateEntryDialog({
+  vendors,
+  projects,
+  departments = [],
+}: CreateEntryDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -217,7 +222,7 @@ export function CreateEntryDialog({ vendors, projects }: CreateEntryDialogProps)
                 </div>
               </div>
 
-              {/* Vendor & Receipt URL */}
+              {/* Vendor & Department */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="entry-vendor" className="text-xs font-semibold">
@@ -239,16 +244,37 @@ export function CreateEntryDialog({ vendors, projects }: CreateEntryDialogProps)
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="entry-receipt" className="text-xs font-semibold">
-                    영수증/증빙 링크 (선택)
+                  <Label htmlFor="entry-department" className="text-xs font-semibold">
+                    담당 부서 (선택)
                   </Label>
-                  <Input
-                    id="entry-receipt"
-                    name="receipt_url"
-                    placeholder="https://drive.google.com/..."
-                    className="h-8 text-xs"
-                  />
+                  <select
+                    id="entry-department"
+                    name="department_id"
+                    defaultValue=""
+                    className="w-full h-8 px-2.5 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    <option value="">-- 부서 미지정 --</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+              </div>
+
+              {/* Receipt URL */}
+              <div className="space-y-1.5">
+                <Label htmlFor="entry-receipt" className="text-xs font-semibold">
+                  영수증/증빙 링크 (선택)
+                </Label>
+                <Input
+                  id="entry-receipt"
+                  name="receipt_url"
+                  type="url"
+                  placeholder="https://..."
+                  className="h-8 text-xs"
+                />
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-border">

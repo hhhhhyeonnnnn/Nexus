@@ -24,7 +24,14 @@
 - **Phase 1-G**: 회의록(Meetings) & 결정사항(Decisions) 도메인 구축
 - **Phase 1-I**: 대시보드 실데이터 완성 (예산 잔액 KPI, 이번 주 회의, 최근 결정사항, 활동 피드), 프로젝트 진행률(Progress bar) 시각화
 - **Phase 1-H**: AI 회의록 분석 (`gpt-4o-mini` 기반 안건 요약, 태스크/결정사항 후보 추출, Zod 스키마 검증, 사용자 검토 후 명시적 등록)
-- **Supabase**: `nexus-dev` / `brknzpcbabwobihxjseq` / Seoul 프로젝트. 총 9개 마이그레이션 적용 완료. 13개 테이블 RLS 보호 및 18개 PGlite 테스트 100% 통과.
+- **Phase 1-J (조직도 & 부서/직책 관리 및 업무·회계 연동)**:
+  - `departments` 스키마 및 마이그레이션 (`20260910200000_departments_and_org_chart.sql`)
+  - 조직도 시각화 탭 (`/members?tab=org-chart`): 회장단 카드, 집행국 그리드, 국장/팀원 계층, 미배정 구성원 카드, 기본 4대 국 일괄 생성
+  - 부서 CRUD 모달 및 구성원 부서/직책(`job_title`) 배정 모달
+  - 구성원 목록에 부서 태그 및 직책 배지 표시
+  - 업무(Tasks) 생성/수정 및 카드에 부서 태그 연동, 부서별 필터링 지원
+  - 회계(Finance) 장부 등록/수정 및 테이블에 부서 태그 연동, 부서별 필터링 지원
+- **Supabase**: `nexus-dev` / `brknzpcbabwobihxjseq` / Seoul 프로젝트. 총 10개 마이그레이션 적용 완료. 14개 테이블 RLS 보호 및 19개 PGlite 테스트 100% 통과.
 
 ---
 
@@ -42,7 +49,7 @@ npm ci
 npm run lint          # ESLint 린트 검사 (0 warnings, 0 errors)
 npm run typecheck     # TypeScript strict 타입 검사
 npm run test:config   # Supabase 설정 안전성 검사
-npm run test:db       # PGlite 메모리 PostgreSQL RLS 정책 검사 (18개 테스트 PASS)
+npm run test:db       # PGlite 메모리 PostgreSQL RLS 정책 검사 (19개 테스트 PASS)
 npm run db:check      # 원격 Supabase 연결 및 RLS 격리 상태 검증
 npx next build --webpack  # 프로덕션 최적화 빌드
 ```

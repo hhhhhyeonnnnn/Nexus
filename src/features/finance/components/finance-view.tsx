@@ -10,7 +10,7 @@ interface FinanceViewProps {
 }
 
 export function FinanceView({ data }: FinanceViewProps) {
-  const { entries, summary, vendors, projects, isAdmin } = data;
+  const { entries, summary, vendors, projects, departments, isAdmin } = data;
 
   const executionRate =
     summary.totalBudget > 0
@@ -33,7 +33,7 @@ export function FinanceView({ data }: FinanceViewProps) {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <CreateEntryDialog vendors={vendors} projects={projects} />
+          <CreateEntryDialog vendors={vendors} projects={projects} departments={departments} />
         </div>
       </div>
 
@@ -116,6 +116,7 @@ export function FinanceView({ data }: FinanceViewProps) {
         entries={entries}
         vendors={vendors}
         projects={projects}
+        departments={departments}
         isAdmin={isAdmin}
       />
     </div>

@@ -20,14 +20,22 @@ type MemberOption = {
   } | null;
 };
 
+type DepartmentOption = {
+  id: string;
+  name: string;
+  color?: string;
+};
+
 export function CreateTaskDialog({
   projects = [],
   members = [],
+  departments = [],
   defaultProjectId,
   buttonLabel = "새 업무",
 }: {
   projects?: ProjectOption[];
   members?: MemberOption[];
+  departments?: DepartmentOption[];
   defaultProjectId?: string;
   buttonLabel?: string;
 }) {
@@ -113,6 +121,25 @@ export function CreateTaskDialog({
                     {projects.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {departments.length > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="task_department_id">담당 부서(국)</Label>
+                  <select
+                    id="task_department_id"
+                    name="department_id"
+                    disabled={isPending}
+                    className="h-8.5 rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="">(부서 미지정)</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
                       </option>
                     ))}
                   </select>

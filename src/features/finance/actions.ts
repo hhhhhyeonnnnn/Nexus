@@ -11,6 +11,8 @@ export type BudgetRow = Database["public"]["Tables"]["budgets"]["Row"];
 export interface LedgerEntry extends BudgetRow {
   vendorName?: string | null;
   projectName?: string | null;
+  departmentName?: string | null;
+  departmentColor?: string | null;
 }
 
 export interface LedgerSummary {
@@ -27,6 +29,7 @@ export interface FinancePageData {
   summary: LedgerSummary;
   vendors: Array<{ id: string; name: string }>;
   projects: Array<{ id: string; name: string }>;
+  departments: Array<{ id: string; name: string; color: string }>;
   isAdmin: boolean;
 }
 
@@ -43,6 +46,7 @@ export async function getFinanceData(): Promise<FinancePageData> {
     },
     vendors: [],
     projects: [],
+    departments: [],
     isAdmin: false,
   };
 
@@ -61,7 +65,7 @@ export async function getFinanceData(): Promise<FinancePageData> {
   // 1. Fetch all budget/ledger entries for the organization
   const { data: rawEntries } = await supabase
     .from("budgets")
-    .select("*, vendors(id, name), projects(id, name)")
+    .select("*, vendors(id, name), projects(id, name), departments(id, name, color)")
     .eq("organization_id", membership.organizationId)
     .order("transaction_date", { ascending: false })
     .order("created_at", { ascending: false });
@@ -78,6 +82,14 @@ export async function getFinanceData(): Promise<FinancePageData> {
     .from("projects")
     .select("id, name")
     .eq("organization_id", membership.organizationId)
+    .order("name", { ascending: true });
+
+  // 4. Fetch available departments for dropdowns
+  const { data: rawDepartments } = await supabase
+    .from("departments")
+    .select("id, name, color")
+    .eq("organization_id", membership.organizationId)
+    .order("sort_order", { ascending: true })
     .order("name", { ascending: true });
 
   let totalIncome = 0;
@@ -101,14 +113,16 @@ export async function getFinanceData(): Promise<FinancePageData> {
     totalBudget += planned;
 
     // Supabase join resolution
-    // row.vendors may be an object or null depending on FK
     const vendorObj = row.vendors as { id: string; name: string } | null;
     const projectObj = row.projects as { id: string; name: string } | null;
+    const deptObj = row.departments as { id: string; name: string; color: string } | null;
 
     return {
       ...row,
       vendorName: vendorObj?.name ?? null,
       projectName: projectObj?.name ?? null,
+      departmentName: deptObj?.name ?? null,
+      departmentColor: deptObj?.color ?? null,
     };
   });
 
@@ -126,6 +140,7 @@ export async function getFinanceData(): Promise<FinancePageData> {
     summary,
     vendors: rawVendors ?? [],
     projects: rawProjects ?? [],
+    departments: (rawDepartments as Array<{ id: string; name: string; color: string }>) ?? [],
     isAdmin,
   };
 }
@@ -142,6 +157,7 @@ export async function createLedgerEntry(
   const transactionDate = formData.get("transaction_date");
   const vendorId = formData.get("vendor_id");
   const projectId = formData.get("project_id");
+  const departmentId = formData.get("department_id");
   const receiptUrl = formData.get("receipt_url");
 
   if (typeof title !== "string" || !title.trim()) {
@@ -176,6 +192,7 @@ export async function createLedgerEntry(
         : new Date().toISOString().slice(0, 10),
     vendor_id: typeof vendorId === "string" && vendorId.trim() ? vendorId.trim() : null,
     project_id: typeof projectId === "string" && projectId.trim() ? projectId.trim() : null,
+    department_id: typeof departmentId === "string" && departmentId.trim() ? departmentId.trim() : null,
     receipt_url: typeof receiptUrl === "string" && receiptUrl.trim() ? receiptUrl.trim() : null,
   };
 
@@ -203,6 +220,7 @@ export async function updateLedgerEntry(
   const transactionDate = formData.get("transaction_date");
   const vendorId = formData.get("vendor_id");
   const projectId = formData.get("project_id");
+  const departmentId = formData.get("department_id");
   const receiptUrl = formData.get("receipt_url");
 
   if (typeof entryId !== "string" || !entryId) {
@@ -239,6 +257,7 @@ export async function updateLedgerEntry(
         : new Date().toISOString().slice(0, 10),
     vendor_id: typeof vendorId === "string" && vendorId.trim() ? vendorId.trim() : null,
     project_id: typeof projectId === "string" && projectId.trim() ? projectId.trim() : null,
+    department_id: typeof departmentId === "string" && departmentId.trim() ? departmentId.trim() : null,
     receipt_url: typeof receiptUrl === "string" && receiptUrl.trim() ? receiptUrl.trim() : null,
   };
 

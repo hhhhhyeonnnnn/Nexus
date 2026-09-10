@@ -12,9 +12,15 @@ interface EditEntryDialogProps {
   entry: LedgerEntry;
   vendors: Array<{ id: string; name: string }>;
   projects: Array<{ id: string; name: string }>;
+  departments?: Array<{ id: string; name: string; color: string }>;
 }
 
-export function EditEntryDialog({ entry, vendors, projects }: EditEntryDialogProps) {
+export function EditEntryDialog({
+  entry,
+  vendors,
+  projects,
+  departments = [],
+}: EditEntryDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -207,6 +213,7 @@ export function EditEntryDialog({ entry, vendors, projects }: EditEntryDialogPro
               </div>
 
               {/* Vendor & Receipt URL */}
+              {/* Vendor & Department */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor={`edit-entry-vend-${entry.id}`} className="text-xs font-semibold">
@@ -228,17 +235,37 @@ export function EditEntryDialog({ entry, vendors, projects }: EditEntryDialogPro
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor={`edit-entry-rcpt-${entry.id}`} className="text-xs font-semibold">
-                    영수증/증빙 링크 (선택)
+                  <Label htmlFor={`edit-entry-dept-${entry.id}`} className="text-xs font-semibold">
+                    담당 부서 (선택)
                   </Label>
-                  <Input
-                    id={`edit-entry-rcpt-${entry.id}`}
-                    name="receipt_url"
-                    defaultValue={entry.receipt_url ?? ""}
-                    placeholder="https://drive.google.com/..."
-                    className="h-8 text-xs"
-                  />
+                  <select
+                    id={`edit-entry-dept-${entry.id}`}
+                    name="department_id"
+                    defaultValue={entry.department_id ?? ""}
+                    className="w-full h-8 px-2.5 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    <option value="">-- 부서 미지정 --</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+              </div>
+
+              {/* Receipt URL */}
+              <div className="space-y-1.5">
+                <Label htmlFor={`edit-entry-rcpt-${entry.id}`} className="text-xs font-semibold">
+                  영수증/증빙 링크 (선택)
+                </Label>
+                <Input
+                  id={`edit-entry-rcpt-${entry.id}`}
+                  name="receipt_url"
+                  defaultValue={entry.receipt_url ?? ""}
+                  placeholder="https://drive.google.com/..."
+                  className="h-8 text-xs"
+                />
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-border">
