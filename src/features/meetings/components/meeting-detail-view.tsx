@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -12,6 +12,8 @@ import {
   FileText,
   CheckCircle2,
   Sparkles,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { deleteMeeting, type MeetingWithStats } from "@/features/meetings/actions";
@@ -38,6 +40,9 @@ export function MeetingDetailView({
 }: MeetingDetailViewProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+
+  // If AI summary exists, collapse raw content by default for higher readability
+  const [showRawContent, setShowRawContent] = useState(!meeting.ai_summary);
 
   const formattedDate = new Date(meeting.meeting_date).toLocaleDateString("ko-KR", {
     year: "numeric",
@@ -69,6 +74,8 @@ export function MeetingDetailView({
     projectName: meeting.projectName,
     meetingTitle: meeting.title,
   }));
+
+  const rawContentLength = meeting.content ? meeting.content.length : 0;
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -144,53 +151,35 @@ export function MeetingDetailView({
         )}
       </div>
 
-      {/* AI Summary Card (if present) */}
+      {/* 1. AI Summary Card (Prominently Presented First) */}
       {meeting.ai_summary && (
-        <div className="rounded-xl border border-blue-500/20 bg-gradient-to-br from-blue-50/40 to-indigo-50/30 dark:from-blue-950/20 dark:to-indigo-950/20 p-6 shadow-2xs space-y-3">
-          <div className="flex items-center justify-between pb-2.5 border-b border-blue-200/50 dark:border-blue-900/40">
-            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Sparkles size={16} className="text-blue-600 dark:text-blue-400" />
-              <span>AI 핵심 안건 요약</span>
-            </h2>
+        <div className="rounded-xl border border-blue-500/20 bg-gradient-to-br from-blue-50/50 via-card to-indigo-50/30 dark:from-blue-950/25 dark:via-card dark:to-indigo-950/20 p-6 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-blue-200/60 dark:border-blue-900/40">
+            <div className="flex items-center gap-2">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                <Sparkles size={16} />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-foreground">AI 핵심 안건 요약</h2>
+                <p className="text-[11px] text-muted-foreground">
+                  회의 내용에서 추출된 핵심 안건 및 논의 결과 요약입니다.
+                </p>
+              </div>
+            </div>
+
             <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 dark:text-blue-300 bg-blue-100/70 dark:bg-blue-900/50 px-2 py-0.5 rounded-md border border-blue-200/60 dark:border-blue-800/40">
               <CheckCircle2 size={11} />
-              <span>검토 및 저장 완료</span>
+              <span>검토 완료</span>
             </span>
           </div>
 
-          <div className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap font-sans">
+          <div className="text-xs sm:text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap font-sans space-y-1">
             {meeting.ai_summary}
           </div>
         </div>
       )}
 
-      {/* Meeting Content Body */}
-      <div className="rounded-xl border border-border bg-card p-6 shadow-2xs space-y-3">
-        <div className="flex items-center justify-between pb-2 border-b border-border">
-          <h2 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-            <FileText size={16} className="text-primary" />
-            <span>회의 내용 및 기록</span>
-          </h2>
-
-          {!meeting.ai_summary && meeting.content && (
-            <span className="text-[11px] text-muted-foreground hidden sm:inline">
-              우측 상단 &apos;AI 회의록 분석&apos;으로 요약 및 할 일을 추출할 수 있습니다.
-            </span>
-          )}
-        </div>
-
-        {meeting.content ? (
-          <div className="text-xs text-foreground/90 font-mono leading-relaxed whitespace-pre-wrap p-2 bg-muted/20 rounded-lg">
-            {meeting.content}
-          </div>
-        ) : (
-          <p className="text-xs text-muted-foreground italic py-4">
-            회의 내용이 작성되지 않았습니다. 상단의 [회의록 수정] 버튼을 눌러 내용을 작성해 보세요.
-          </p>
-        )}
-      </div>
-
-      {/* Decisions Section */}
+      {/* 2. Decisions Section (Key Resolutions) */}
       <div className="rounded-xl border border-border bg-card p-6 shadow-2xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
           <div>
@@ -231,6 +220,63 @@ export function MeetingDetailView({
                 isAdmin={isAdmin}
               />
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* 3. Raw Meeting Content Section (Collapsible when summary exists) */}
+      <div className="rounded-xl border border-border bg-card p-6 shadow-2xs space-y-3">
+        <div className="flex items-center justify-between pb-2 border-b border-border">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+              <FileText size={16} className="text-primary" />
+              <span>회의 원문 기록</span>
+            </h2>
+            {rawContentLength > 0 && (
+              <span className="text-[11px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full border border-border">
+                {rawContentLength.toLocaleString("ko-KR")}자
+              </span>
+            )}
+          </div>
+
+          {meeting.ai_summary ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowRawContent((prev) => !prev)}
+              className="text-xs h-7 gap-1 text-muted-foreground hover:text-foreground"
+            >
+              <span>{showRawContent ? "원문 접기" : "원문 보기"}</span>
+              {showRawContent ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </Button>
+          ) : (
+            meeting.content && (
+              <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                상단의 &apos;AI 회의록 분석&apos;으로 요약 및 할 일을 추출할 수 있습니다.
+              </span>
+            )
+          )}
+        </div>
+
+        {showRawContent ? (
+          meeting.content ? (
+            <div className="text-xs text-foreground/90 font-mono leading-relaxed whitespace-pre-wrap p-3.5 bg-muted/30 rounded-lg border border-border/50 max-h-[500px] overflow-y-auto">
+              {meeting.content}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground italic py-4">
+              회의 내용이 작성되지 않았습니다. 상단의 [회의록 수정] 버튼을 눌러 내용을 작성해 보세요.
+            </p>
+          )
+        ) : (
+          <div
+            onClick={() => setShowRawContent(true)}
+            className="group cursor-pointer rounded-lg border border-dashed border-border/70 bg-muted/20 p-4 text-center hover:bg-muted/40 hover:border-border transition-colors"
+          >
+            <p className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+              회의록 원문이 접혀 있습니다. 클릭하거나 우측 상단 &apos;원문 보기&apos;를 눌러 전체 기록을 확인하세요.
+            </p>
           </div>
         )}
       </div>
