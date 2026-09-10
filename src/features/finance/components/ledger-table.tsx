@@ -11,6 +11,7 @@ import {
   FolderKanban,
   Building2,
   Calendar,
+  X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,8 @@ export function LedgerTable({
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [departmentFilter, setDepartmentFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [previewReceiptUrl, setPreviewReceiptUrl] = useState<string | null>(null);
+  const [previewReceiptTitle, setPreviewReceiptTitle] = useState<string>("");
   const [isPending, startTransition] = useTransition();
 
   const filteredEntries = useMemo(() => {
@@ -303,15 +306,17 @@ export function LedgerTable({
                       {/* Receipt Link */}
                       <td className="py-3 px-2.5 text-center whitespace-nowrap">
                         {entry.receipt_url ? (
-                          <a
-                            href={entry.receipt_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center p-1 rounded hover:bg-muted text-primary transition-colors"
-                            title="영수증/증빙 보기"
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPreviewReceiptUrl(entry.receipt_url);
+                              setPreviewReceiptTitle(entry.title);
+                            }}
+                            className="inline-flex items-center justify-center p-1 rounded hover:bg-primary/10 text-primary transition-colors cursor-pointer"
+                            title="영수증/증빙 사진 보기"
                           >
                             <ExternalLink size={13} />
-                          </a>
+                          </button>
                         ) : (
                           <span className="text-muted-foreground/30">-</span>
                         )}
@@ -349,6 +354,48 @@ export function LedgerTable({
           </table>
         </div>
       </div>
+
+      {/* Receipt Image Lightbox Modal */}
+      {previewReceiptUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs animate-in fade-in-0">
+          <div className="w-full max-w-xl max-h-[90vh] flex flex-col rounded-2xl border bg-card shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between border-b px-5 py-3.5 bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Receipt className="size-4 text-primary" />
+                <span className="text-xs font-bold text-foreground truncate max-w-sm">
+                  {previewReceiptTitle || "영수증 증빙"}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewReceiptUrl(null)}
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-muted/10 min-h-[300px]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewReceiptUrl}
+                alt="영수증 증빙"
+                className="max-h-[75vh] max-w-full rounded-lg object-contain shadow-md"
+              />
+            </div>
+            <div className="flex justify-end p-3 border-t bg-card">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setPreviewReceiptUrl(null)}
+                className="text-xs h-7.5"
+              >
+                닫기
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

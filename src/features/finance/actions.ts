@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserOrganization } from "@/features/projects/actions";
 import { getSupabaseConfig } from "@/lib/supabase/env";
+import { analyzeReceiptOcr, type ReceiptOcrResult } from "@/lib/ai/receipt-ocr";
 import type { Database } from "@/types/database";
 
 export type BudgetRow = Database["public"]["Tables"]["budgets"]["Row"];
@@ -299,3 +300,44 @@ export async function deleteLedgerEntry(
   revalidatePath("/vendors");
   return { error: null, success: true };
 }
+
+export async function analyzeReceiptWithAI(
+  imageBase64: string,
+  mimeType = "image/jpeg",
+): Promise<{ success: boolean; data?: ReceiptOcrResult; error?: string }> {
+  const membership = await getCurrentUserOrganization();
+  if (!membership) {
+    return { success: false, error: "학생회 조직 정보를 찾을 수 없습니다." };
+  }
+
+  const supabase = await createClient();
+
+  // Fetch context for matching
+  const [vendorsRes, departmentsRes, projectsRes] = await Promise.all([
+    supabase
+      .from("vendors")
+      .select("id, name")
+      .eq("organization_id", membership.organizationId),
+    supabase
+      .from("departments")
+      .select("id, name")
+      .eq("organization_id", membership.organizationId),
+    supabase
+      .from("projects")
+      .select("id, name")
+      .eq("organization_id", membership.organizationId),
+  ]);
+
+  const vendors = vendorsRes.data ?? [];
+  const departments = departmentsRes.data ?? [];
+  const projects = projectsRes.data ?? [];
+
+  return analyzeReceiptOcr({
+    imageBase64,
+    mimeType,
+    vendors,
+    departments,
+    projects,
+  });
+}
+
