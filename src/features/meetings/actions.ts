@@ -27,6 +27,81 @@ export interface MeetingDetailData {
   isAdmin: boolean;
 }
 
+export interface DashboardMeetingSummary {
+  id: string;
+  title: string;
+  meetingDate: string;
+  projectName: string | null;
+}
+
+export interface DashboardDecisionSummary {
+  id: string;
+  title: string;
+  content: string;
+  decidedAt: string | null;
+  meetingId: string | null;
+}
+
+export async function getDashboardMeetingSummaries(): Promise<{
+  thisWeekMeetings: DashboardMeetingSummary[];
+  recentDecisions: DashboardDecisionSummary[];
+}> {
+  const empty = { thisWeekMeetings: [], recentDecisions: [] };
+
+  if (!getSupabaseConfig()) return empty;
+
+  const membership = await getCurrentUserOrganization();
+  if (!membership) return empty;
+
+  const supabase = await createClient();
+  const orgId = membership.organizationId;
+
+  // This week: Monday 00:00 ~ Sunday 23:59 (KST → use ISO dates)
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon …
+  const diffToMon = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek);
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + diffToMon);
+  monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+
+  const [meetingsRes, decisionsRes] = await Promise.all([
+    supabase
+      .from("meetings")
+      .select("id, title, meeting_date, projects(name)")
+      .eq("organization_id", orgId)
+      .gte("meeting_date", monday.toISOString().slice(0, 10))
+      .lte("meeting_date", sunday.toISOString().slice(0, 10))
+      .order("meeting_date", { ascending: true })
+      .limit(5),
+    supabase
+      .from("decisions")
+      .select("id, title, content, decided_at, meeting_id")
+      .eq("organization_id", orgId)
+      .order("decided_at", { ascending: false })
+      .limit(5),
+  ]);
+
+  const thisWeekMeetings: DashboardMeetingSummary[] = (meetingsRes.data ?? []).map((m) => ({
+    id: m.id,
+    title: m.title,
+    meetingDate: m.meeting_date,
+    projectName: (m.projects as { name: string } | null)?.name ?? null,
+  }));
+
+  const recentDecisions: DashboardDecisionSummary[] = (decisionsRes.data ?? []).map((d) => ({
+    id: d.id,
+    title: d.title,
+    content: d.content,
+    decidedAt: d.decided_at,
+    meetingId: d.meeting_id,
+  }));
+
+  return { thisWeekMeetings, recentDecisions };
+}
+
 export async function getMeetings(projectId?: string): Promise<MeetingsPageData> {
   const emptyResult: MeetingsPageData = {
     meetings: [],

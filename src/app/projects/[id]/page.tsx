@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Calendar, CheckSquare, Clock } from "lucide-react";
+import { ArrowLeft, Calendar, CheckSquare, Clock, Receipt } from "lucide-react";
 import { Card, CardTitle } from "@/components/ui/card";
-import { getProjectById, getCurrentUserOrganization } from "@/features/projects/actions";
+import { Progress } from "@/components/ui/progress";
+import { getProjectById, getCurrentUserOrganization, getProjectBudgetSummary } from "@/features/projects/actions";
 import { getTasks, getOrganizationMembersList } from "@/features/tasks/actions";
 import { ProjectStatusChip } from "@/features/projects/components/project-status-chip";
 import { EditProjectDialog } from "@/features/projects/components/edit-project-dialog";
@@ -17,17 +18,26 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+function formatKRW(amount: number) {
+  if (Math.abs(amount) >= 10_000) {
+    const man = Math.round(amount / 1_000) / 10;
+    return `${man.toLocaleString("ko-KR")}만원`;
+  }
+  return `${amount.toLocaleString("ko-KR")}원`;
+}
+
 export default async function ProjectDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [project, membership, tasks, members] = await Promise.all([
+  const [project, membership, tasks, members, budgetSummary] = await Promise.all([
     getProjectById(id),
     getCurrentUserOrganization(),
     getTasks({ projectId: id }),
     getOrganizationMembersList(),
+    getProjectBudgetSummary(id),
   ]);
 
   if (!project) {
@@ -51,6 +61,9 @@ export default async function ProjectDetailPage({
 
   const totalTasks = tasks.length;
   const doneTasks = tasks.filter((t) => t.status === "DONE").length;
+  const taskProgressPct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+
+  const hasBudget = budgetSummary.plannedAmount > 0 || budgetSummary.actualAmount > 0;
 
   return (
     <div className="space-y-6">
@@ -86,7 +99,7 @@ export default async function ProjectDetailPage({
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="flex items-center gap-4 p-4">
           <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <Calendar className="size-5" />
@@ -97,17 +110,53 @@ export default async function ProjectDetailPage({
           </div>
         </Card>
 
-        <Card className="flex items-center gap-4 p-4">
-          <div className="flex size-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-            <CheckSquare className="size-5" />
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground">연관된 업무 (Tasks)</div>
-            <div className="text-sm font-semibold text-foreground">
-              {totalTasks > 0 ? `${doneTasks} / ${totalTasks} 완료` : "0개 등록됨"}
+        <Card className="flex flex-col gap-2 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+              <CheckSquare className="size-5" />
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">업무 완료율</div>
+              <div className="text-sm font-semibold text-foreground">
+                {totalTasks > 0 ? `${doneTasks} / ${totalTasks} 완료 (${taskProgressPct}%)` : "0개 등록됨"}
+              </div>
             </div>
           </div>
+          {totalTasks > 0 && (
+            <Progress value={taskProgressPct} aria-label={`업무 완료율 ${taskProgressPct}%`} />
+          )}
         </Card>
+
+        {hasBudget ? (
+          <Card className="flex flex-col gap-2 p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-green-500/10 text-green-600">
+                <Receipt className="size-5" />
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">예산 집행률</div>
+                <div className="text-sm font-semibold text-foreground">
+                  {formatKRW(budgetSummary.actualAmount)} / {formatKRW(budgetSummary.plannedAmount)}
+                </div>
+              </div>
+            </div>
+            <Progress
+              value={budgetSummary.executionRate}
+              className="[&>div]:bg-green-500"
+              aria-label={`예산 집행률 ${Math.round(budgetSummary.executionRate)}%`}
+            />
+          </Card>
+        ) : (
+          <Card className="flex items-center gap-4 p-4">
+            <div className="flex size-10 items-center justify-center rounded-lg bg-green-500/10 text-green-600">
+              <Receipt className="size-5" />
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">예산 집행률</div>
+              <div className="text-sm text-muted-foreground/60 italic">예산 미등록</div>
+            </div>
+          </Card>
+        )}
 
         <Card className="flex items-center gap-4 p-4">
           <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Calendar, CheckSquare } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { ProjectStatusChip } from "@/features/projects/components/project-status-chip";
 import type { Database } from "@/types/database";
 
@@ -11,6 +12,7 @@ type Project = Database["public"]["Tables"]["projects"]["Row"] & {
 export function ProjectCard({ project }: { project: Project }) {
   const totalTasks = project.tasks?.length ?? 0;
   const completedTasks = project.tasks?.filter((t) => t.status === "DONE").length ?? 0;
+  const progressPct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return null;
@@ -46,18 +48,24 @@ export function ProjectCard({ project }: { project: Project }) {
           )}
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border/50 pt-3 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <Calendar className="size-3.5 shrink-0" aria-hidden="true" />
-            <span>{dateRange ?? "기간 미정"}</span>
+        <div className="mt-4 space-y-2.5 border-t border-border/50 pt-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="size-3.5 shrink-0" aria-hidden="true" />
+              <span>{dateRange ?? "기간 미정"}</span>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <CheckSquare className="size-3.5 shrink-0" aria-hidden="true" />
+              <span>
+                {totalTasks > 0 ? `${completedTasks}/${totalTasks} 완료` : "업무 없음"}
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-1">
-            <CheckSquare className="size-3.5 shrink-0" aria-hidden="true" />
-            <span>
-              {totalTasks > 0 ? `${completedTasks}/${totalTasks} 완료` : "업무 없음"}
-            </span>
-          </div>
+          {totalTasks > 0 && (
+            <Progress value={progressPct} aria-label={`업무 완료율 ${progressPct}%`} />
+          )}
         </div>
       </Card>
     </Link>
