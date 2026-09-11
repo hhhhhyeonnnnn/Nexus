@@ -1,15 +1,17 @@
 "use client";
 
 import { useTransition, useState } from "react";
-import { Shield, UserMinus, UserCheck } from "lucide-react";
+import { Shield, UserMinus, UserCheck, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MemberRoleBadge } from "./member-role-badge";
+import { LeaveOrgDialog } from "./leave-org-dialog";
 import { EditProfileDialog } from "@/features/auth/components/edit-profile-dialog";
 import { AssignMemberDialog } from "@/features/departments/components/assign-member-dialog";
 import { getDepartmentColorClasses } from "@/features/departments/utils";
 import {
   updateMemberRole,
   removeMember,
+  transferPresidentRole,
   type OrganizationMemberDetailed,
   type OrgRole,
 } from "@/features/organizations/actions";
@@ -26,6 +28,7 @@ export function MemberItem({
   member,
   currentUserId,
   isAdmin,
+  isPresident,
   departments = [],
 }: MemberItemProps) {
   const [isPending, startTransition] = useTransition();
@@ -36,6 +39,22 @@ export function MemberItem({
     setErrorMsg(null);
     startTransition(async () => {
       const res = await updateMemberRole(member.userId, newRole);
+      if (res.error) {
+        setErrorMsg(res.error);
+      }
+    });
+  };
+
+  const handleTransferPresident = () => {
+    if (
+      !confirm(
+        `${member.name}님에게 총학생회장(대표) 권한을 위임하시겠습니까?\n\n위임 후 본인은 관리자(ADMIN) 권한으로 변경됩니다.`,
+      )
+    )
+      return;
+    setErrorMsg(null);
+    startTransition(async () => {
+      const res = await transferPresidentRole(member.userId);
       if (res.error) {
         setErrorMsg(res.error);
       }
@@ -126,6 +145,20 @@ export function MemberItem({
             />
           )}
 
+          {isPresident && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isPending}
+              onClick={handleTransferPresident}
+              className="text-xs h-8 gap-1.5 border-amber-500/30 hover:bg-amber-500/10 text-amber-600 dark:text-amber-400"
+              title="총학생회장(대표) 권한을 이 구성원에게 위임합니다"
+            >
+              <Crown size={14} className="text-amber-500" />
+              <span>대표 위임</span>
+            </Button>
+          )}
+
           {member.role === "MEMBER" ? (
             <Button
               type="button"
@@ -167,8 +200,9 @@ export function MemberItem({
       )}
 
       {isMe && (
-        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center flex-wrap">
           <EditProfileDialog currentName={member.name} />
+          <LeaveOrgDialog isPresident={member.role === "PRESIDENT"} />
         </div>
       )}
     </div>
