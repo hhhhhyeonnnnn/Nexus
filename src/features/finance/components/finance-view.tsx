@@ -34,7 +34,7 @@ export function FinanceView({ data }: FinanceViewProps) {
             학생회비, 사업비, 프로젝트별 지출 내역과 영수증 증빙을 투명하게 정리·관리합니다.
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
           <AuditReportModal data={data} />
           <ReceiptOcrDialog vendors={vendors} projects={projects} departments={departments} />
           <CreateEntryDialog vendors={vendors} projects={projects} departments={departments} />

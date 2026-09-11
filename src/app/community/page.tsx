@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function CommunityPage() {
   const membership = await getCurrentUserOrganization();
   if (!membership) {
-    redirect("/dashboard");
+    redirect("/onboarding");
   }
 
   const [announcements, petitions, polls] = await Promise.all([

@@ -154,7 +154,7 @@ export function Sidebar() {
                 key={item.label}
                 type="button"
                 onClick={() => window.dispatchEvent(new CustomEvent("open-assistant"))}
-                className="flex h-8.5 items-center gap-2.5 rounded-lg px-2.5 text-left text-xs font-medium text-foreground hover:bg-muted/60 transition-colors cursor-pointer mt-1"
+                className="flex h-9.5 md:h-8.5 items-center gap-2.5 rounded-lg px-3 md:px-2.5 text-left text-xs font-medium text-foreground hover:bg-muted/60 transition-colors cursor-pointer mt-1"
                 aria-label="Nexus AI 어시스턴트 열기"
               >
                 <Icon size={16} className="text-primary shrink-0" aria-hidden="true" />
@@ -171,7 +171,7 @@ export function Sidebar() {
               key={item.label}
               href={item.href}
               className={cn(
-                "flex h-8.5 items-center gap-2.5 rounded-lg px-2.5 text-xs font-medium transition-colors",
+                "flex h-9.5 md:h-8.5 items-center gap-2.5 rounded-lg px-3 md:px-2.5 text-xs font-medium transition-colors",
                 active
                   ? "bg-accent text-accent-foreground font-semibold shadow-xs"
                   : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"

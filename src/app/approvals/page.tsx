@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function ApprovalsPage() {
   const membership = await getCurrentUserOrganization();
   if (!membership) {
-    redirect("/dashboard");
+    redirect("/onboarding");
   }
 
   const supabase = await createClient();
