@@ -17,6 +17,9 @@ import {
   type ApprovalWithRelations,
 } from "../actions";
 
+import { useRoleContext } from "@/features/auth/role-context";
+import { useRealtimeRefresh } from "@/lib/supabase/realtime";
+
 interface ApprovalsViewProps {
   approvals: ApprovalWithRelations[];
   currentUserId: string;
@@ -36,9 +39,22 @@ export function ApprovalsView({
   departments,
   projects,
 }: ApprovalsViewProps) {
+  const { organizationId } = useRoleContext();
   const [tab, setTab] = useState<"ALL" | "PENDING" | "MY_SUBMISSIONS" | "APPROVED" | "REJECTED">("ALL");
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
   const [selectedApproval, setSelectedApproval] = useState<ApprovalWithRelations | null>(null);
+
+  useRealtimeRefresh({
+    table: "approvals",
+    filter: organizationId ? `organization_id=eq.${organizationId}` : undefined,
+    enabled: Boolean(organizationId),
+  });
+
+  useRealtimeRefresh({
+    table: "approval_logs",
+    filter: organizationId ? `organization_id=eq.${organizationId}` : undefined,
+    enabled: Boolean(organizationId),
+  });
 
   // Top KPIs
   const pendingCount = approvals.filter((a) => a.status === "PENDING").length;
@@ -66,6 +82,10 @@ export function ApprovalsView({
             </h1>
             <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
               Approval Workflow
+            </span>
+            <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium ml-1">
+              <span className="size-2 rounded-full bg-emerald-500 animate-ping" />
+              실시간 결재 연동
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">

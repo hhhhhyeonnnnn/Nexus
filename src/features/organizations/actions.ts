@@ -454,14 +454,14 @@ export async function isCurrentUserSiteAdmin(): Promise<boolean> {
 }
 
 export async function getMyRequests() {
-  if (!getSupabaseConfig()) return { creationRequests: [], joinRequests: [] };
+  if (!getSupabaseConfig()) return { creationRequests: [], joinRequests: [], userId: null };
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { creationRequests: [], joinRequests: [] };
+  if (!user) return { creationRequests: [], joinRequests: [], userId: null };
 
   const [creationRes, joinRes] = await Promise.all([
     supabase
@@ -479,6 +479,7 @@ export async function getMyRequests() {
   return {
     creationRequests: creationRes.data ?? [],
     joinRequests: joinRes.data ?? [],
+    userId: user.id,
   };
 }
 

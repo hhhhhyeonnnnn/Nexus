@@ -74,7 +74,16 @@
   - **부원 전용 홈 (“오늘 내가 뭐 해야 하지?”)**: 본인 담당 긴급/마감 업무 즉시 체크박스 토글, 퀵 액션 바(영수증 촬영/결재 기안/AI 질의), 이번 주 개인 일정, 참여 중인 프로젝트, 최근 지출 내역 한눈에 제공.
   - **국장단 실무 대시보드 (“우리 국 현황”)**: 부서 관제탑(지연 업무, 미배정 업무, 1차 승인 대기 결재, 미증빙 영수증), 국원별 업무량 분배(Workload) 차트, 부서 프로젝트/업무 요약.
   - **회장단/관리자용 역할 시점 미리보기(Role Switcher)**: 사이드바 하단에서 `[회장단 뷰]`, `[국장단 뷰]`, `[부원 뷰]` 원클릭 토글 지원.
-- **Supabase**: `nexus-dev` / `wsqyubzskzrvxphlffyv` / Seoul 프로젝트. 총 13개 마이그레이션 적용 완료. 23개 테이블 RLS 보호 및 23개 PGlite 테스트 100% 통과.
+- **Phase 1-R (전 도메인 실시간(Realtime) 동기화 인프라 및 라이브 반응 시스템)**:
+  - **Supabase Realtime Publication 마이그레이션 (`20260911150000_supabase_realtime_setup.sql`)**: `notifications`, `organization_join_requests`, `organization_creation_requests`, `form_submissions`, `event_forms`, `polls`, `poll_votes`, `petitions`, `approvals`, `approval_logs`, `tasks`를 Realtime publication에 안전하게 등록.
+  - **React 범용 실시간 훅 (`src/lib/supabase/realtime.ts`)**: `useRealtimeSubscription` (테이블/필터 구독 및 이벤트 처리) & `useRealtimeRefresh` (디바운스 Next.js App Router 백그라운드 데이터 재검증).
+  - **온보딩 가입 승인 실시간 자동 진입**: 승인자가 가입 승인 클릭 즉시 신청자 화면에서 축하 배너와 함께 1.8초 뒤 대시보드로 자동 라우팅.
+  - **실시간 활동 알림 및 플로팅 토스트**: 알림 발생 0.1초 만에 화면 우측 하단 슬라이드 인 라이브 토스트 노출 및 배지 갱신.
+  - **현장 티켓 체크인 데스크 다중 스태프 실시간 동기화**: 다른 스태프의 체크인이 즉시 반영되어 중복 입장 방지 및 실시간 출석률 프로그레스 바 연동.
+  - **공개 신청 폼 잔여석 카운트다운**: 실시간 접수 현황 카운트다운 및 정원 마감 즉시 접수 차단.
+  - **캠퍼스 라이브 투표 득표율 실시간 반영**: 학우 투표 시 득표율 및 득표수 그래프 바가 개표 방송처럼 라이브로 상승.
+  - **전자결재 실시간 인장 날인 & 대시보드/업무 현황 동기화**: 결재권자 승인/반려 시 실시간 도장 날인 및 관제탑/업무 리스트 무중단 자동 동기화.
+- **Supabase**: `nexus-dev` / `wsqyubzskzrvxphlffyv` / Seoul 프로젝트. 총 14개 마이그레이션 적용 완료. 23개 테이블 RLS 보호 및 23개 PGlite 테스트 100% 통과.
 
 ---
 

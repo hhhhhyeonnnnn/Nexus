@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useMemo, useTransition } from "react";
 import { Vote, Plus, Trash2, StopCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusChip } from "@/components/common/status-chip";
@@ -11,6 +11,8 @@ import {
   type PollOption,
   type PollRow,
 } from "../actions";
+import { useRoleContext } from "@/features/auth/role-context";
+import { useRealtimeSubscription } from "@/lib/supabase/realtime";
 
 interface PollsTabProps {
   polls: PollRow[];
@@ -18,8 +20,39 @@ interface PollsTabProps {
 }
 
 export function PollsTab({ polls, isAdmin }: PollsTabProps) {
+  const { organizationId } = useRoleContext();
+  const [pollUpdates, setPollUpdates] = useState<Record<string, PollRow>>({});
+  const [newPolls, setNewPolls] = useState<PollRow[]>([]);
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  useRealtimeSubscription<PollRow>({
+    table: "polls",
+    filter: organizationId ? `organization_id=eq.${organizationId}` : undefined,
+    enabled: Boolean(organizationId),
+    onUpdate: (updatedPoll) => {
+      setPollUpdates((prev) => ({ ...prev, [updatedPoll.id]: updatedPoll }));
+    },
+    onInsert: (newPoll) => {
+      setNewPolls((prev) => {
+        if (prev.some((p) => p.id === newPoll.id)) return prev;
+        return [newPoll, ...prev];
+      });
+    },
+    onDelete: (deletedRow) => {
+      if (deletedRow.id) {
+        setDeletedIds((prev) => new Set([...prev, deletedRow.id!]));
+      }
+    },
+  });
+
+  const localPolls = useMemo(() => {
+    const merged = polls.map((p) => pollUpdates[p.id] ?? p).filter((p) => !deletedIds.has(p.id));
+    const existingIds = new Set(merged.map((p) => p.id));
+    const extra = newPolls.filter((p) => !existingIds.has(p.id) && !deletedIds.has(p.id));
+    return [...extra, ...merged];
+  }, [polls, pollUpdates, newPolls, deletedIds]);
 
   // Create poll state
   const [title, setTitle] = useState("");
@@ -86,9 +119,15 @@ export function PollsTab({ polls, isAdmin }: PollsTabProps) {
     <div className="space-y-4">
       {/* Action Bar */}
       <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
-          학우들의 실시간 여론과 의견을 수렴하는 캠퍼스 보팅 시스템
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-xs text-muted-foreground">
+            학우들의 실시간 여론과 의견을 수렴하는 캠퍼스 보팅 시스템
+          </p>
+          <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
+            <span className="size-2 rounded-full bg-emerald-500 animate-ping" />
+            실시간 개표 중
+          </span>
+        </div>
 
         <Button
           size="sm"
@@ -101,7 +140,7 @@ export function PollsTab({ polls, isAdmin }: PollsTabProps) {
       </div>
 
       {/* Polls List */}
-      {polls.length === 0 ? (
+      {localPolls.length === 0 ? (
         <div className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
           <Vote className="mx-auto mb-3 text-muted-foreground/50" size={32} />
           <p className="font-medium text-sm">개설된 투표가 없습니다.</p>
@@ -109,7 +148,7 @@ export function PollsTab({ polls, isAdmin }: PollsTabProps) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {polls.map((item) => {
+          {localPolls.map((item) => {
             const rawOptions = (item.options as unknown as PollOption[]) || [];
             const total = item.total_votes || 0;
 

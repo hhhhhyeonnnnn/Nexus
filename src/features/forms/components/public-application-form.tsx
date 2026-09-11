@@ -19,6 +19,7 @@ import {
   type CustomField,
   type FormSubmissionRow,
 } from "@/features/forms/actions";
+import { useRealtimeSubscription } from "@/lib/supabase/realtime";
 
 export function PublicApplicationForm({
   formId,
@@ -49,6 +50,19 @@ export function PublicApplicationForm({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  // Live count with Realtime (derived without effect)
+  const [additionalCount, setAdditionalCount] = useState(0);
+
+  useRealtimeSubscription<{ id: string; form_id: string }>({
+    table: "form_submissions",
+    filter: `form_id=eq.${formId}`,
+    onInsert: () => {
+      setAdditionalCount((prev) => prev + 1);
+    },
+  });
+
+  const liveCount = currentCount + additionalCount;
+
   // Custom field values state
   const [customResponses, setCustomResponses] = useState<Record<string, unknown>>({});
 
@@ -58,7 +72,7 @@ export function PublicApplicationForm({
   const [lookupResult, setLookupResult] = useState<FormSubmissionRow | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
 
-  const isFull = maxCapacity !== null && currentCount >= maxCapacity;
+  const isFull = maxCapacity !== null && liveCount >= maxCapacity;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -349,8 +363,9 @@ export function PublicApplicationForm({
               </span>
 
               {maxCapacity && (
-                <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                  잔여 {Math.max(0, maxCapacity - currentCount)}석 / 정원 {maxCapacity}명
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                  <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  잔여 {Math.max(0, maxCapacity - liveCount)}석 / 정원 {maxCapacity}명
                 </span>
               )}
             </div>

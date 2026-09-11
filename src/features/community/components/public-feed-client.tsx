@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useMemo, useTransition } from "react";
 import Link from "next/link";
 import {
   Megaphone,
   MessageSquareQuote,
   Vote,
-  Pin,
   CheckCircle2,
-  Lock,
-  Send,
   Plus,
+  Send,
+  Pin,
   ArrowRight,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusChip } from "@/components/common/status-chip";
@@ -23,9 +23,14 @@ import {
   type PollOption,
   type PollRow,
 } from "../actions";
+import { useRealtimeSubscription } from "@/lib/supabase/realtime";
 
 interface PublicFeedClientProps {
-  organization: { id: string; name: string; university_name: string };
+  organization: {
+    id: string;
+    name: string;
+    university_name: string;
+  };
   announcements: AnnouncementRow[];
   petitions: PetitionRow[];
   polls: PollRow[];
@@ -46,6 +51,54 @@ export function PublicFeedClient({
 }: PublicFeedClientProps) {
   const [activeTab, setActiveTab] = useState<"announcements" | "petitions" | "polls">("announcements");
   const [isPending, startTransition] = useTransition();
+
+  const [pollUpdates, setPollUpdates] = useState<Record<string, PollRow>>({});
+  const [newPolls, setNewPolls] = useState<PollRow[]>([]);
+
+  const [petitionUpdates, setPetitionUpdates] = useState<Record<string, PetitionRow>>({});
+  const [newPetitions, setNewPetitions] = useState<PetitionRow[]>([]);
+
+  useRealtimeSubscription<PollRow>({
+    table: "polls",
+    filter: `organization_id=eq.${organization.id}`,
+    onUpdate: (updatedPoll) => {
+      setPollUpdates((prev) => ({ ...prev, [updatedPoll.id]: updatedPoll }));
+    },
+    onInsert: (newPoll) => {
+      setNewPolls((prev) => {
+        if (prev.some((p) => p.id === newPoll.id)) return prev;
+        return [newPoll, ...prev];
+      });
+    },
+  });
+
+  useRealtimeSubscription<PetitionRow>({
+    table: "petitions",
+    filter: `organization_id=eq.${organization.id}`,
+    onUpdate: (updatedPetition) => {
+      setPetitionUpdates((prev) => ({ ...prev, [updatedPetition.id]: updatedPetition }));
+    },
+    onInsert: (newPetition) => {
+      setNewPetitions((prev) => {
+        if (prev.some((p) => p.id === newPetition.id)) return prev;
+        return [newPetition, ...prev];
+      });
+    },
+  });
+
+  const localPolls = useMemo(() => {
+    const merged = polls.map((p) => pollUpdates[p.id] ?? p);
+    const existingIds = new Set(merged.map((p) => p.id));
+    const extra = newPolls.filter((p) => !existingIds.has(p.id));
+    return [...extra, ...merged];
+  }, [polls, pollUpdates, newPolls]);
+
+  const localPetitions = useMemo(() => {
+    const merged = petitions.map((p) => petitionUpdates[p.id] ?? p);
+    const existingIds = new Set(merged.map((p) => p.id));
+    const extra = newPetitions.filter((p) => !existingIds.has(p.id));
+    return [...extra, ...merged];
+  }, [petitions, petitionUpdates, newPetitions]);
 
   // Client-side voter ID generated from localStorage
   const [voterId] = useState<string>(() => {
@@ -208,7 +261,7 @@ export function PublicFeedClient({
             }`}
           >
             <MessageSquareQuote size={16} />
-            학우 건의함 ({petitions.length})
+            학우 건의함 ({localPetitions.length})
           </button>
 
           <button
@@ -221,7 +274,7 @@ export function PublicFeedClient({
             }`}
           >
             <Vote size={16} />
-            캠퍼스 투표 ({polls.length})
+            캠퍼스 투표 ({localPolls.length})
           </button>
         </div>
 
@@ -284,13 +337,13 @@ export function PublicFeedClient({
               </Button>
             </div>
 
-            {petitions.length === 0 ? (
+            {localPetitions.length === 0 ? (
               <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground text-xs">
                 등록된 공개 건의사항이 없습니다. 먼저 건의를 남겨보세요!
               </div>
             ) : (
               <div className="space-y-3">
-                {petitions.map((item) => (
+                {localPetitions.map((item) => (
                   <div
                     key={item.id}
                     className="rounded-xl border bg-card p-4.5 transition-shadow hover:shadow-xs space-y-2.5"
@@ -340,19 +393,29 @@ export function PublicFeedClient({
         {/* Tab 3: Polls */}
         {activeTab === "polls" && (
           <div className="space-y-4">
+            <div className="flex items-center justify-between pb-1">
+              <span className="text-xs text-muted-foreground">
+                학우 여러분의 소중한 한 표가 학생회 정책에 반영됩니다.
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
+                <span className="size-2 rounded-full bg-emerald-500 animate-ping" />
+                실시간 라이브 집계
+              </span>
+            </div>
+
             {voteError && (
               <div className="rounded-md bg-destructive/10 p-3 text-xs text-destructive">
                 {voteError}
               </div>
             )}
 
-            {polls.length === 0 ? (
+            {localPolls.length === 0 ? (
               <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground text-xs">
                 현재 진행 중인 캠퍼스 투표가 없습니다.
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {polls.map((item) => {
+                {localPolls.map((item) => {
                   const rawOptions = (item.options as unknown as PollOption[]) || [];
                   const total = item.total_votes || 0;
                   const votedOptionId = myVotes[item.id];

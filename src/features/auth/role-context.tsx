@@ -14,6 +14,8 @@ import {
 } from "@/features/projects/actions";
 
 interface RoleContextValue {
+  userId: string | null;
+  organizationId: string | null;
   actualRole: UserRoleType;
   activeRole: UserRoleType;
   setActiveRole: (role: UserRoleType) => void;
@@ -25,6 +27,8 @@ interface RoleContextValue {
 }
 
 const RoleContext = createContext<RoleContextValue>({
+  userId: null,
+  organizationId: null,
   actualRole: "EXECUTIVE",
   activeRole: "EXECUTIVE",
   setActiveRole: () => {},
@@ -84,6 +88,8 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   return (
     <RoleContext.Provider
       value={{
+        userId: membership?.userId ?? null,
+        organizationId: membership?.organizationId ?? null,
         actualRole,
         activeRole,
         setActiveRole,

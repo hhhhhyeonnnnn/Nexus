@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useMemo, useTransition } from "react";
 import {
   CheckCircle2,
   XCircle,
@@ -19,6 +19,7 @@ import {
   type ApprovalStepItem,
   type ApprovalWithRelations,
 } from "../actions";
+import { useRealtimeSubscription } from "@/lib/supabase/realtime";
 
 interface ApprovalDetailModalProps {
   approval: ApprovalWithRelations;
@@ -31,8 +32,22 @@ const TYPE_MAP: Record<string, { label: string; tone: "neutral" | "accent" | "su
   GENERAL: { label: "일반 품의서", tone: "neutral" },
 };
 
-export function ApprovalDetailModal({ approval, onClose }: ApprovalDetailModalProps) {
+export function ApprovalDetailModal({ approval: initialApproval, onClose }: ApprovalDetailModalProps) {
+  const [approvalOverride, setApprovalOverride] = useState<Partial<ApprovalWithRelations> | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  useRealtimeSubscription<ApprovalWithRelations>({
+    table: "approvals",
+    filter: `id=eq.${initialApproval.id}`,
+    onUpdate: (updatedRow) => {
+      setApprovalOverride((prev) => ({ ...prev, ...updatedRow }));
+    },
+  });
+
+  const approval = useMemo(
+    () => ({ ...initialApproval, ...approvalOverride }),
+    [initialApproval, approvalOverride],
+  );
 
   // Approve / Reject Form States
   const [isApproveOpen, setIsApproveOpen] = useState(false);
