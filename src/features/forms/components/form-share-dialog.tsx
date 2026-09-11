@@ -19,7 +19,20 @@ export function FormShareDialog({
       ? `${window.location.origin}/apply/${formId}`
       : `/apply/${formId}`;
 
-  const handleCopy = () => {
+  const handleShare = async () => {
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      try {
+        await navigator.share({
+          title: `[신청 접수] ${formTitle}`,
+          text: `「${formTitle}」 온라인 신청이 진행 중입니다. 링크를 확인해 보세요!`,
+          url: publicUrl,
+        });
+        return;
+      } catch {
+        // Fallback to clipboard if share was canceled or aborted
+      }
+    }
+
     if (navigator.clipboard) {
       navigator.clipboard.writeText(publicUrl);
       setCopied(true);
@@ -33,9 +46,9 @@ export function FormShareDialog({
         type="button"
         variant="outline"
         size="sm"
-        onClick={handleCopy}
+        onClick={handleShare}
         className="gap-1.5 text-xs h-8"
-        title={`${formTitle} 공개 신청 링크 복사`}
+        title={`${formTitle} 신청 링크 공유하기`}
       >
         {copied ? (
           <>

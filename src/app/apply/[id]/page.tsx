@@ -1,9 +1,55 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Ticket } from "lucide-react";
 import { getPublicEventForm, type CustomField } from "@/features/forms/actions";
 import { PublicApplicationForm } from "@/features/forms/components/public-application-form";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(props: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await props.params;
+  const { form } = await getPublicEventForm(id);
+
+  if (!form) {
+    return {
+      title: "신청 폼 | Nexus",
+      description: "학생회 행사 및 축제 신청",
+    };
+  }
+
+  const org = form.organizations;
+  const categoryLabel =
+    form.category === "BOOTH"
+      ? "축제 부스 신청"
+      : form.category === "TICKET"
+      ? "행사 티켓 예매"
+      : "공개 참가 신청";
+
+  const title = `[${categoryLabel}] ${form.title}`;
+  const orgName = `${org?.university_name ?? ""} ${org?.name ?? "학생회"}`.trim();
+  const description =
+    form.description ||
+    `${orgName} 주최 「${form.title}」 온라인 접수 페이지입니다.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      siteName: `${orgName} · Nexus`,
+      locale: "ko_KR",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
 
 export default async function PublicApplyPage(props: {
   params: Promise<{ id: string }>;

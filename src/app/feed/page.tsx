@@ -1,9 +1,42 @@
+import type { Metadata } from "next";
 import { getPublicFeed } from "@/features/community/actions";
 import { PublicFeedClient } from "@/features/community/components/public-feed-client";
 import Link from "next/link";
 import { Megaphone } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(props: {
+  searchParams: Promise<{ org?: string }>;
+}): Promise<Metadata> {
+  const searchParams = await props.searchParams;
+  const orgId = searchParams.org;
+  const { organization } = await getPublicFeed(orgId);
+
+  const orgName = organization
+    ? `${organization.university_name} ${organization.name}`
+    : "학생회";
+
+  const title = `캠퍼스 소통 광장 | ${orgName}`;
+  const description = `${orgName} 공지사항, 학생 청원 및 실시간 캠퍼스 투표에 참여하세요.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      siteName: `${orgName} · Nexus`,
+      locale: "ko_KR",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
 
 export default async function PublicFeedPage(props: {
   searchParams: Promise<{ org?: string }>;

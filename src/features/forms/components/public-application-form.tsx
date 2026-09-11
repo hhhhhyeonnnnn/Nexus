@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Calendar,
   ShieldCheck,
+  Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,11 +103,35 @@ export function PublicApplicationForm({
     });
   };
 
+  const [shared, setShared] = useState(false);
+
   const handleCopyTicket = () => {
     if (issuedTicketCode && navigator.clipboard) {
       navigator.clipboard.writeText(issuedTicketCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleShareEvent = async () => {
+    const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      try {
+        await navigator.share({
+          title: `[${formTitle}] 신청 완료!`,
+          text: `「${formTitle}」 함께 가실 분? 지금 접수 중입니다!`,
+          url: shareUrl,
+        });
+        return;
+      } catch {
+        // Share cancelled
+      }
+    }
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(shareUrl);
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
     }
   };
 
@@ -227,6 +252,25 @@ export function PublicApplicationForm({
           </div>
 
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              onClick={handleShareEvent}
+              className="w-full sm:w-auto text-xs gap-1.5 font-semibold"
+            >
+              {shared ? (
+                <>
+                  <Check className="size-3.5 text-emerald-300" />
+                  <span>링크 복사됨!</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="size-3.5" />
+                  <span>친구에게 이 행사 공유하기</span>
+                </>
+              )}
+            </Button>
             <Button
               type="button"
               variant="outline"
