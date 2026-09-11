@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { getVendors } from "@/features/vendors/actions";
+import { getCurrentUserOrganization } from "@/features/projects/actions";
 import { VendorListView } from "@/features/vendors/components/vendor-list-view";
 
 export const metadata: Metadata = {
@@ -16,6 +18,11 @@ interface VendorsPageProps {
 }
 
 export default async function VendorsPage({ searchParams }: VendorsPageProps) {
+  const membership = await getCurrentUserOrganization();
+  if (!membership) {
+    redirect("/onboarding");
+  }
+
   const params = await searchParams;
   const data = await getVendors(params.category);
 

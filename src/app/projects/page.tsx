@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Folder } from "lucide-react";
-import { getProjects } from "@/features/projects/actions";
+import { getProjects, getCurrentUserOrganization } from "@/features/projects/actions";
 import { ProjectCard } from "@/features/projects/components/project-card";
 import { CreateProjectDialog } from "@/features/projects/components/create-project-dialog";
 import { ProjectFilterTabs } from "@/features/projects/components/project-filter-tabs";
@@ -19,6 +20,11 @@ export default async function ProjectsPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
+  const membership = await getCurrentUserOrganization();
+  if (!membership) {
+    redirect("/onboarding");
+  }
+
   const params = await searchParams;
   const statusFilter = params.status as ProjectStatus | undefined;
   const projects = await getProjects(statusFilter);

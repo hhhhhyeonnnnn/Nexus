@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { getMeetings } from "@/features/meetings/actions";
 import { getDecisions } from "@/features/decisions/actions";
+import { getCurrentUserOrganization } from "@/features/projects/actions";
 import { MeetingListView } from "@/features/meetings/components/meeting-list-view";
 
 export const metadata: Metadata = {
@@ -18,6 +20,11 @@ interface MeetingsPageProps {
 }
 
 export default async function MeetingsPage({ searchParams }: MeetingsPageProps) {
+  const membership = await getCurrentUserOrganization();
+  if (!membership) {
+    redirect("/onboarding");
+  }
+
   const params = await searchParams;
   const [meetingsData, decisionsData] = await Promise.all([
     getMeetings(params.project),

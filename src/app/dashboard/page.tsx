@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import {
   getDashboardProjectSummaries,
   getCurrentUserOrganization,
@@ -37,6 +38,10 @@ export default async function DashboardPage() {
     getMemberHomeData(),
     getDepartmentDashboardData(),
   ]);
+
+  if (!membership) {
+    redirect("/onboarding");
+  }
 
   const executiveProps = {
     projectSummaries,

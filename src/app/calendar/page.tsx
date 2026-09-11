@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { getCalendarData } from "@/features/calendar/actions";
+import { getCurrentUserOrganization } from "@/features/projects/actions";
 import { CalendarView } from "@/features/calendar/components/calendar-view";
 
 export const metadata: Metadata = {
@@ -17,6 +19,11 @@ interface CalendarPageProps {
 }
 
 export default async function CalendarPage({ searchParams }: CalendarPageProps) {
+  const membership = await getCurrentUserOrganization();
+  if (!membership) {
+    redirect("/onboarding");
+  }
+
   const params = await searchParams;
   const year = params.year ? parseInt(params.year, 10) : undefined;
   const month = params.month ? parseInt(params.month, 10) : undefined;

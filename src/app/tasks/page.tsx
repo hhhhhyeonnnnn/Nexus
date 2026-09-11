@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { CheckSquare } from "lucide-react";
 import { getTasks, getOrganizationMembersList, getOrganizationDepartmentsList } from "@/features/tasks/actions";
-import { getProjects } from "@/features/projects/actions";
+import { getProjects, getCurrentUserOrganization } from "@/features/projects/actions";
 import { TaskItem } from "@/features/tasks/components/task-item";
 import { CreateTaskDialog } from "@/features/tasks/components/create-task-dialog";
 import { TaskFilterTabs } from "@/features/tasks/components/task-filter-tabs";
@@ -20,6 +21,11 @@ export default async function TasksPage({
 }: {
   searchParams: Promise<{ status?: string; projectId?: string; departmentId?: string }>;
 }) {
+  const membership = await getCurrentUserOrganization();
+  if (!membership) {
+    redirect("/onboarding");
+  }
+
   const params = await searchParams;
   const statusFilter = params.status as TaskStatus | undefined;
 

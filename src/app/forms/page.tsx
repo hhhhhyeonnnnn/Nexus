@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   Ticket,
   Calendar,
@@ -8,7 +9,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { getEventForms } from "@/features/forms/actions";
-import { getProjects } from "@/features/projects/actions";
+import { getProjects, getCurrentUserOrganization } from "@/features/projects/actions";
 import { CreateFormDialog } from "@/features/forms/components/create-form-dialog";
 import { FormShareDialog } from "@/features/forms/components/form-share-dialog";
 
@@ -17,6 +18,11 @@ export const dynamic = "force-dynamic";
 export default async function FormsPage(props: {
   searchParams: Promise<{ status?: string; category?: string }>;
 }) {
+  const membership = await getCurrentUserOrganization();
+  if (!membership) {
+    redirect("/onboarding");
+  }
+
   const searchParams = await props.searchParams;
   const statusFilter = (searchParams.status as "ALL" | "OPEN" | "CLOSED" | "DRAFT") || "ALL";
   const categoryFilter = searchParams.category || "ALL";

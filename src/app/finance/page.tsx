@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { getFinanceData } from "@/features/finance/actions";
+import { getCurrentUserOrganization } from "@/features/projects/actions";
 import { FinanceView } from "@/features/finance/components/finance-view";
 
 export const metadata: Metadata = {
@@ -10,6 +12,11 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function FinancePage() {
+  const membership = await getCurrentUserOrganization();
+  if (!membership) {
+    redirect("/onboarding");
+  }
+
   const data = await getFinanceData();
 
   return <FinanceView data={data} />;
