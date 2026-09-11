@@ -8,12 +8,14 @@ import { CommandPalette } from "@/features/search/components/command-palette";
 import { AssistantModal } from "@/features/assistant/components/assistant-modal";
 import { AssistantTrigger } from "@/features/assistant/components/assistant-trigger";
 import { NotificationBell } from "@/features/notifications/components/notification-bell";
+import { RoleProvider } from "@/features/auth/role-context";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-dvh">
+    <RoleProvider>
+      <div className="min-h-dvh">
       <a
         href="#main-content"
         className="sr-only fixed top-2 left-2 z-50 rounded-md bg-background p-3 focus:not-sr-only"
@@ -93,5 +95,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Global AI Assistant Modal */}
       <AssistantModal />
     </div>
+    </RoleProvider>
   );
 }

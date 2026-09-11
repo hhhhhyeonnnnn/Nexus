@@ -6,7 +6,7 @@ import { getSupabaseConfig } from "@/lib/supabase/env";
 import { getCurrentUserOrganization } from "@/features/projects/actions";
 import type { Database } from "@/types/database";
 
-type TaskStatus = Database["public"]["Enums"]["task_status"];
+export type TaskStatus = Database["public"]["Enums"]["task_status"];
 
 export type TaskWithDetails = Database["public"]["Tables"]["tasks"]["Row"] & {
   projects?: { id: string; name: string } | null;
