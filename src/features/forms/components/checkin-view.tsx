@@ -17,6 +17,7 @@ import {
   type FormSubmissionRow,
   type EventFormWithStats,
 } from "@/features/forms/actions";
+import { useRealtimeSubscription } from "@/lib/supabase/realtime";
 
 export function CheckinView({
   form,
@@ -25,12 +26,36 @@ export function CheckinView({
   form: EventFormWithStats;
   submissions: FormSubmissionRow[];
 }) {
+  const [submissionUpdates, setSubmissionUpdates] = useState<Record<string, FormSubmissionRow>>({});
+  const [newSubmissions, setNewSubmissions] = useState<FormSubmissionRow[]>([]);
   const [query, setQuery] = useState<string>("");
   const [isPending, startTransition] = useTransition();
 
+  // Realtime subscription for multi-staff entrance sync
+  useRealtimeSubscription<FormSubmissionRow>({
+    table: "form_submissions",
+    filter: `form_id=eq.${form.id}`,
+    onUpdate: (updatedRow) => {
+      setSubmissionUpdates((prev) => ({ ...prev, [updatedRow.id]: updatedRow }));
+    },
+    onInsert: (newRow) => {
+      setNewSubmissions((prev) => {
+        if (prev.some((s) => s.id === newRow.id)) return prev;
+        return [newRow, ...prev];
+      });
+    },
+  });
+
+  const localSubmissions = useMemo(() => {
+    const merged = submissions.map((s) => submissionUpdates[s.id] ?? s);
+    const existingIds = new Set(merged.map((s) => s.id));
+    const extra = newSubmissions.filter((s) => !existingIds.has(s.id));
+    return [...extra, ...merged];
+  }, [submissions, submissionUpdates, newSubmissions]);
+
   const approvedSubmissions = useMemo(
-    () => submissions.filter((s) => s.status === "APPROVED"),
-    [submissions],
+    () => localSubmissions.filter((s) => s.status === "APPROVED"),
+    [localSubmissions],
   );
 
   const checkedInCount = useMemo(
@@ -56,11 +81,11 @@ export function CheckinView({
 
   // Recent check-ins list (sorted by checked_in_at desc)
   const recentCheckins = useMemo(() => {
-    return submissions
+    return localSubmissions
       .filter((s) => s.checked_in && s.checked_in_at)
       .sort((a, b) => new Date(b.checked_in_at!).getTime() - new Date(a.checked_in_at!).getTime())
       .slice(0, 8);
-  }, [submissions]);
+  }, [localSubmissions]);
 
   const handleCheckIn = (submissionId: string) => {
     startTransition(async () => {
@@ -106,10 +131,16 @@ export function CheckinView({
       {/* 2. Fast Search & Verify Desk */}
       <div className="rounded-xl border bg-card p-6 space-y-4">
         <div>
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <Ticket className="size-4 text-primary" />
-            실시간 티켓 / 참가자 확인 데스크
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Ticket className="size-4 text-primary" />
+              실시간 티켓 / 참가자 확인 데스크
+            </h3>
+            <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
+              <span className="size-2 rounded-full bg-emerald-500 animate-ping" />
+              스태프 실시간 연동 중
+            </span>
+          </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             티켓 코드(예: TKT-2026-XXXX), 학번, 참가자 이름, 또는 휴대폰 번호 뒷자리로 검색하세요.
           </p>

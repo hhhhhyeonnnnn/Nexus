@@ -15,7 +15,7 @@ export default async function OnboardingPage({
   searchParams: Promise<{ status?: string; error?: string }>;
 }) {
   const params = await searchParams;
-  const { creationRequests, joinRequests } = await getMyRequests();
+  const { creationRequests, joinRequests, userId } = await getMyRequests();
   const isSiteAdmin = await isCurrentUserSiteAdmin();
 
   return (
@@ -50,6 +50,7 @@ export default async function OnboardingPage({
       <OnboardingStatus
         creationRequests={creationRequests}
         joinRequests={joinRequests}
+        userId={userId}
       />
 
       {/* Choice cards */}
