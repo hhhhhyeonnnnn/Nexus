@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseConfig } from "@/lib/supabase/env";
@@ -424,6 +425,109 @@ export async function removeMember(targetUserId: string): Promise<ActionState> {
 
   if (error) {
     return { error: "구성원 삭제에 실패했습니다: " + error.message };
+  }
+
+  revalidatePath("/members");
+  return { error: null, success: true };
+}
+
+export async function leaveOrganization(): Promise<ActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "인증되지 않은 요청입니다." };
+
+  // 1. Get user's current membership
+  const { data: myMembership } = await supabase
+    .from("organization_members")
+    .select("organization_id, role")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (!myMembership) {
+    return { error: "소속된 학생회가 없습니다." };
+  }
+
+  // 2. If PRESIDENT, check if there are other members
+  if (myMembership.role === "PRESIDENT") {
+    const { count } = await supabase
+      .from("organization_members")
+      .select("user_id", { count: "exact", head: true })
+      .eq("organization_id", myMembership.organization_id);
+
+    if (count && count > 1) {
+      return {
+        error:
+          "총학생회장(대표)은 탈퇴하기 전에 다른 관리자에게 대표 권한을 위임해야 합니다.",
+      };
+    }
+  }
+
+  // 3. Delete from organization_members
+  const { error: deleteError } = await supabase
+    .from("organization_members")
+    .delete()
+    .eq("organization_id", myMembership.organization_id)
+    .eq("user_id", user.id);
+
+  if (deleteError) {
+    return { error: "학생회 탈퇴 처리에 실패했습니다: " + deleteError.message };
+  }
+
+  // 4. Reset nexus-has-org cookie
+  const cookieStore = await cookies();
+  cookieStore.delete("nexus-has-org");
+
+  // 5. Revalidate and redirect to onboarding
+  revalidatePath("/", "layout");
+  redirect("/onboarding?status=left_org");
+}
+
+export async function transferPresidentRole(targetUserId: string): Promise<ActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "인증되지 않은 요청입니다." };
+  if (user.id === targetUserId) {
+    return { error: "본인에게는 대표 권한을 위임할 수 없습니다." };
+  }
+
+  const { data: myMembership } = await supabase
+    .from("organization_members")
+    .select("organization_id, role")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (!myMembership || myMembership.role !== "PRESIDENT") {
+    return { error: "총학생회장(대표)만 대표 권한을 위임할 수 있습니다." };
+  }
+
+  // Promote target to PRESIDENT
+  const { error: promoteError } = await supabase
+    .from("organization_members")
+    .update({ role: "PRESIDENT" })
+    .eq("organization_id", myMembership.organization_id)
+    .eq("user_id", targetUserId);
+
+  if (promoteError) {
+    return { error: "대표 권한 위임에 실패했습니다: " + promoteError.message };
+  }
+
+  // Demote self to ADMIN
+  const { error: demoteError } = await supabase
+    .from("organization_members")
+    .update({ role: "ADMIN" })
+    .eq("organization_id", myMembership.organization_id)
+    .eq("user_id", user.id);
+
+  if (demoteError) {
+    return { error: "내 권한 갱신에 실패했습니다: " + demoteError.message };
   }
 
   revalidatePath("/members");

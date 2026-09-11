@@ -46,6 +46,12 @@ export default async function OnboardingPage({
         </div>
       )}
 
+      {params.status === "left_org" && (
+        <div className="rounded-lg bg-blue-50 border border-blue-200 p-4 text-xs text-blue-800">
+          학생회에서 정상적으로 탈퇴 처리되었습니다. 새로운 학생회를 생성하거나 다른 학생회에 가입을 신청해 보세요.
+        </div>
+      )}
+
       {/* Existing application status */}
       <OnboardingStatus
         creationRequests={creationRequests}
