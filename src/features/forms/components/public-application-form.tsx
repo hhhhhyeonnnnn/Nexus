@@ -20,6 +20,7 @@ import {
   type FormSubmissionRow,
 } from "@/features/forms/actions";
 import { useRealtimeSubscription } from "@/lib/supabase/realtime";
+import { PrivacyConsentModal } from "@/components/common/privacy-consent-modal";
 
 export function PublicApplicationForm({
   formId,
@@ -66,6 +67,10 @@ export function PublicApplicationForm({
   // Custom field values state
   const [customResponses, setCustomResponses] = useState<Record<string, unknown>>({});
 
+  // Privacy Consent Modal state
+  const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
+  const [isConsentChecked, setIsConsentChecked] = useState(false);
+
   // Ticket lookup state
   const [lookupCode, setLookupCode] = useState("");
   const [lookupPhone, setLookupPhone] = useState("");
@@ -76,6 +81,11 @@ export function PublicApplicationForm({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!isConsentChecked) {
+      setError("개인정보 수집 및 이용에 동의하셔야 신청이 완료됩니다.");
+      return;
+    }
+
     const form = e.currentTarget;
     const formData = new FormData(form);
     formData.set("responses", JSON.stringify(customResponses));
@@ -572,21 +582,37 @@ export function PublicApplicationForm({
 
               {/* Consent and Submit */}
               <div className="pt-4 border-t space-y-3">
-                <div className="flex items-start gap-2">
-                  <input
-                    type="checkbox"
-                    id="consent"
-                    required
-                    className="mt-0.5 rounded border-input text-primary focus:ring-primary size-4"
-                  />
-                  <Label htmlFor="consent" className="text-xs text-muted-foreground font-normal leading-tight cursor-pointer">
-                    개인정보 수집 및 행사 운영 목적 활용에 동의하며, 학생회 주최 행사의 안전 수칙 및 안내 사항을 준수할 것에 동의합니다.
-                  </Label>
+                <div className="rounded-xl border bg-muted/40 p-3.5 space-y-2">
+                  <div className="flex items-start gap-2.5">
+                    <input
+                      type="checkbox"
+                      id="consent"
+                      required
+                      checked={isConsentChecked}
+                      onChange={(e) => setIsConsentChecked(e.target.checked)}
+                      className="mt-0.5 rounded border-input text-primary focus:ring-primary size-4 cursor-pointer"
+                    />
+                    <div className="flex-1 text-xs leading-snug">
+                      <Label htmlFor="consent" className="font-semibold text-foreground cursor-pointer block">
+                        [필수] 개인정보 수집·이용 및 행사 운영 규정 동의
+                      </Label>
+                      <p className="text-muted-foreground text-[11px] mt-0.5">
+                        수집 항목: 성명, 연락처, 학번 | 수집 목적: 티켓 발권 및 입장 확인 | 보유 기간: 행사 종료 후 30일
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsConsentModalOpen(true)}
+                      className="text-[11px] font-semibold text-primary hover:underline whitespace-nowrap px-1.5 py-0.5 rounded-md hover:bg-primary/5 transition-colors"
+                    >
+                      전문 보기
+                    </button>
+                  </div>
                 </div>
 
                 <Button
                   type="submit"
-                  disabled={isPending}
+                  disabled={isPending || !isConsentChecked}
                   className="w-full h-11 text-sm font-semibold tracking-wide"
                 >
                   {isPending ? "제출 및 티켓 발급 중..." : "신청서 제출 및 티켓 발급받기"}
@@ -596,6 +622,15 @@ export function PublicApplicationForm({
           )}
         </div>
       )}
+
+      {/* Privacy & Terms Modal */}
+      <PrivacyConsentModal
+        isOpen={isConsentModalOpen}
+        onClose={() => setIsConsentModalOpen(false)}
+        onAgree={() => setIsConsentChecked(true)}
+        type="APPLY"
+        title="[필수] 행사 참가자 개인정보 수집·이용 동의"
+      />
     </div>
   );
 }

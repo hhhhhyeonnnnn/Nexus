@@ -83,14 +83,21 @@
   - **공개 신청 폼 잔여석 카운트다운**: 실시간 접수 현황 카운트다운 및 정원 마감 즉시 접수 차단.
   - **캠퍼스 라이브 투표 득표율 실시간 반영**: 학우 투표 시 득표율 및 득표수 그래프 바가 개표 방송처럼 라이브로 상승.
   - **전자결재 실시간 인장 날인 & 대시보드/업무 현황 동기화**: 결재권자 승인/반려 시 실시간 도장 날인 및 관제탑/업무 리스트 무중단 자동 동기화.
-- **Supabase**: `nexus-dev` / `wsqyubzskzrvxphlffyv` / Seoul 프로젝트. 총 14개 마이그레이션 적용 완료. 23개 테이블 RLS 보호 및 23개 PGlite 테스트 100% 통과.
+- **Phase 1-S (서비스 필수 안전장치: 개인정보보호법 준수 약관 및 Supabase Storage 버킷 연동)**:
+  - **스토리지 마이그레이션 (`20260911160000_storage_setup.sql`)**: Supabase Storage 버킷(`receipts`: 10MB, `attachments`: 50MB) 등록 및 Row-Level Security(Public Read, Authenticated Insert/Update) 정책 수립.
+  - **스토리지 업로드 유틸리티 (`src/lib/supabase/storage.ts`)**: Base64 데이터 및 File 객체를 디코딩하여 Supabase Storage에 자동 업로드하고 고유 CDN 공개 URL 발급.
+  - **영수증 OCR 저장소 연동 (`ReceiptOcrDialog`)**: 장부 등록 시 대용량 Base64 원본 텍스트 대신 Supabase Storage CDN URL(`receipt_url`)로 안전하게 치환 저장.
+  - **대한민국 개인정보보호법 표준 약관 및 방침 (`/terms`, `/privacy`)**: 학생회 자치 환경에 특화된 서비스 이용약관 및 개인정보 처리방침 전문 페이지 구축.
+  - **약관 동의 모달 & 유효성 검증 (`PrivacyConsentModal`, `/apply/[id]`, `/login`)**: 축제/부스 공개 신청 폼에 `[필수] 개인정보 수집·이용 동의` 체크박스 및 전문 보기 모달 연동, 미동의 시 제출 차단, 로그인 화면 하단 약관 고지 추가.
+- **Supabase**: `nexus-dev` / `wsqyubzskzrvxphlffyv` / Seoul 프로젝트. 총 15개 마이그레이션 적용 완료. 23개 테이블 RLS 보호 및 23개 PGlite 테스트 100% 통과.
 
 ---
 
 ## 다음 작업 로드맵
 
-- [ ] **Phase 2**: 모바일 PWA 오프라인 지원 및 Google Calendar / Slack 웹훅 연동
-- [ ] **Phase 3**: 학생회 서류/파일 첨부 Supabase Storage 연동 및 문서 OCR/RAG 확장
+- [ ] **2단계**: 외부 공유 바이럴 및 스마트폰 바로가기 (카카오톡/에브리타임 링크 공유 OpenGraph 썸네일 미리보기 + 스마트폰 홈 화면 추가 PWA)
+- [ ] **3단계**: 프로덕션 방어막 (비인가 접근 차단 미들웨어 정교화, 모바일 반응형 터치 UX 최적화)
+- [ ] **4단계**: 성능 & 장애 모니터링 (Next.js 빌드 번들 경량화, 에러 바운더리)
 
 ---
 

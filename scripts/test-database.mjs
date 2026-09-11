@@ -35,6 +35,7 @@ before(async () => {
   await db.exec(await readFile(new URL("../supabase/migrations/20260910400000_community_approvals_audit.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260910500000_notifications.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260911150000_supabase_realtime_setup.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../supabase/migrations/20260911160000_storage_setup.sql", import.meta.url), "utf8"));
 
   for (const n of [1, 2]) {
     await db.exec(`

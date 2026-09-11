@@ -20,6 +20,7 @@ import {
 } from "@/features/finance/actions";
 import { FINANCE_CATEGORIES } from "./create-entry-dialog";
 import type { ReceiptOcrResult } from "@/lib/ai/receipt-ocr";
+import { uploadReceiptImage } from "@/lib/supabase/storage";
 
 interface ReceiptOcrDialogProps {
   vendors: Array<{ id: string; name: string }>;
@@ -164,19 +165,25 @@ export function ReceiptOcrDialog({
     e.preventDefault();
     setError(null);
 
-    const formData = new FormData();
-    formData.set("title", title.trim());
-    formData.set("type", "EXPENSE");
-    formData.set("amount", amountStr);
-    formData.set("planned_amount", amountStr);
-    formData.set("category", category);
-    formData.set("transaction_date", transactionDate);
-    if (vendorId) formData.set("vendor_id", vendorId);
-    if (projectId) formData.set("project_id", projectId);
-    if (departmentId) formData.set("department_id", departmentId);
-    if (imageBase64) formData.set("receipt_url", imageBase64);
-
     startSubmitTransition(async () => {
+      let finalReceiptUrl: string | null = null;
+      if (imageBase64) {
+        const uploadRes = await uploadReceiptImage(imageBase64);
+        finalReceiptUrl = uploadRes.url || imageBase64;
+      }
+
+      const formData = new FormData();
+      formData.set("title", title.trim());
+      formData.set("type", "EXPENSE");
+      formData.set("amount", amountStr);
+      formData.set("planned_amount", amountStr);
+      formData.set("category", category);
+      formData.set("transaction_date", transactionDate);
+      if (vendorId) formData.set("vendor_id", vendorId);
+      if (projectId) formData.set("project_id", projectId);
+      if (departmentId) formData.set("department_id", departmentId);
+      if (finalReceiptUrl) formData.set("receipt_url", finalReceiptUrl);
+
       const res = await createLedgerEntry({ error: null }, formData);
       if (res.error) {
         setError(res.error);
