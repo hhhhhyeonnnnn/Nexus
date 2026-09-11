@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { LoginForm } from "@/features/auth/components/login-form";
 import { SocialButtons } from "@/features/auth/components/social-buttons";
 
@@ -51,6 +52,19 @@ export default async function LoginPage({
 
           <SocialButtons />
         </div>
+      </div>
+
+      {/* Footer Legal Notice */}
+      <div className="text-center text-[11px] sm:text-xs text-muted-foreground">
+        <span>계속 진행하면 Nexus의 </span>
+        <Link href="/terms" className="text-primary hover:underline font-semibold">
+          이용약관
+        </Link>
+        <span> 및 </span>
+        <Link href="/privacy" className="text-primary hover:underline font-semibold">
+          개인정보 처리방침
+        </Link>
+        <span>에 동의하게 됩니다.</span>
       </div>
     </div>
   );
