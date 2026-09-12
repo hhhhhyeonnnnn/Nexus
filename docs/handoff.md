@@ -1,6 +1,6 @@
 # Nexus 개발 인수인계
 
-2026-09-10 기준 (Phase 1 전 모듈 완료 상태). 이 문서는 작업 전환 시점의 기록입니다. 다음 작업에서는 실제 코드, 최신 main과 PR 상태를 먼저 확인하세요.
+2026-09-12 기준 (프로덕션 배포 전 4대 핵심 로드맵 및 학생회 탈퇴/대표위임 완료 상태). 이 문서는 작업 전환 시점의 기록입니다. 다음 작업에서는 실제 코드, 최신 main과 PR 상태를 먼저 확인하세요.
 
 ## 이어서 시작하기
 
@@ -13,7 +13,7 @@
 
 ---
 
-## 완료 상태 (Phase 1 완료)
+## 완료 상태 (Phase 1 전 모듈 & 프로덕션 배포 완료)
 
 - **Phase 1-A**: Next.js 16 App Router, React 19, TypeScript strict, Tailwind v4, shadcn/ui 패턴, Lucide Icons, Figma 대시보드 셸
 - **Phase 1-B**: Supabase Auth (이메일 및 소셜 로그인: Google/Kakao/Naver) & 전역 세션 경로 보호 Proxy
@@ -83,29 +83,44 @@
   - **공개 신청 폼 잔여석 카운트다운**: 실시간 접수 현황 카운트다운 및 정원 마감 즉시 접수 차단.
   - **캠퍼스 라이브 투표 득표율 실시간 반영**: 학우 투표 시 득표율 및 득표수 그래프 바가 개표 방송처럼 라이브로 상승.
   - **전자결재 실시간 인장 날인 & 대시보드/업무 현황 동기화**: 결재권자 승인/반려 시 실시간 도장 날인 및 관제탑/업무 리스트 무중단 자동 동기화.
-- **Phase 1-S (서비스 필수 안전장치: 개인정보보호법 준수 약관 및 Supabase Storage 버킷 연동)**:
+- **Phase 1-S (서비스 필수 안전장치: 개인정보보호법 준수 약관 및 Supabase Storage 버킷 연동 - PR #39)**:
   - **스토리지 마이그레이션 (`20260911160000_storage_setup.sql`)**: Supabase Storage 버킷(`receipts`: 10MB, `attachments`: 50MB) 등록 및 Row-Level Security(Public Read, Authenticated Insert/Update) 정책 수립.
   - **스토리지 업로드 유틸리티 (`src/lib/supabase/storage.ts`)**: Base64 데이터 및 File 객체를 디코딩하여 Supabase Storage에 자동 업로드하고 고유 CDN 공개 URL 발급.
   - **영수증 OCR 저장소 연동 (`ReceiptOcrDialog`)**: 장부 등록 시 대용량 Base64 원본 텍스트 대신 Supabase Storage CDN URL(`receipt_url`)로 안전하게 치환 저장.
   - **대한민국 개인정보보호법 표준 약관 및 방침 (`/terms`, `/privacy`)**: 학생회 자치 환경에 특화된 서비스 이용약관 및 개인정보 처리방침 전문 페이지 구축.
   - **약관 동의 모달 & 유효성 검증 (`PrivacyConsentModal`, `/apply/[id]`, `/login`)**: 축제/부스 공개 신청 폼에 `[필수] 개인정보 수집·이용 동의` 체크박스 및 전문 보기 모달 연동, 미동의 시 제출 차단, 로그인 화면 하단 약관 고지 추가.
-- **Phase 1-T (외부 공유 바이럴 OG 및 모바일 PWA 스마트폰 바로가기)**:
+- **Phase 1-T (외부 공유 바이럴 OG 및 모바일 PWA 스마트폰 바로가기 - PR #40)**:
   - **모바일 PWA & 스마트폰 홈 화면 추가**: `manifest.ts` (Web App Manifest), `icon.tsx` (동적 파비콘), `apple-icon.tsx` (iOS 180x180 전용 앱 아이콘), `layout.tsx`에 `metadataBase`, `viewport`, `appleWebApp` 전역 메타데이터 적용.
   - **카카오톡 / 에브리타임 링크 공유 OpenGraph(OG) 카드**: 전역 기본 OG 배너(`opengraph-image.tsx`), 행사별 동적 OG 배너(`apply/[id]/opengraph-image.tsx`), 동적 메타데이터(`generateMetadata`: 행사명, 소속 학생회, 카테고리 태그).
   - **캠퍼스 소통 피드 공유 메타데이터 (`/feed`)**: 대학/학생회명 및 공론장 동적 메타태그 생성.
   - **모바일 인앱 공유 (`navigator.share`) 지원**: `FormShareDialog` 및 티켓 발급 완료 화면에 [친구에게 공유하기] 버튼 연동.
-- **Phase 1-U (프로덕션 방어막: 비인가 접근 차단 & 모바일 반응형 터치 UX 최적화)**:
+- **Phase 1-U (프로덕션 방어막: 비인가 접근 차단 & 모바일 반응형 터치 UX 최적화 - PR #41)**:
   - **비인가 접근 및 회원 탈퇴자 차단 미들웨어 정교화**: `src/proxy.ts`에 `/dashboard` 매처 누락 보완, `nexus-has-org` 쿠키 캐시 수명을 5분으로 단축하여 권한 박탈 시 즉각 차단.
   - **10대 학생회 내부 페이지 서버 가드 연동**: 대시보드, 회계, 전자결재, 회의록, 프로젝트, 업무, 캘린더, 제휴업체, 폼, 소통 관리 10개 전 페이지에서 미승인/비회원 접근 시 `/onboarding`으로 즉시 안전 리다이렉트.
   - **모바일 반응형 슬라이드오버 드로어 (`AppShell`)**: 기존 상단 인라인 확장 대신 fixed 백드롭 오버레이 + 좌측 슬라이드 인 드로어 구축, 링크 클릭 및 라우트 이동 시 자동 닫힘, 바디 스크롤 잠금 및 Esc 닫기 지원.
   - **모바일 터치 UX 최적화 (`Sidebar`, `FinanceView`)**: 모바일 내비게이션 터치 영역 확대(`min-h-9.5 md:h-8.5`), 회계 상단 액션 버튼 모바일 반응형 랩핑.
-- **Supabase**: `nexus-dev` / `wsqyubzskzrvxphlffyv` / Seoul 프로젝트. 총 15개 마이그레이션 적용 완료. 23개 테이블 RLS 보호 및 23개 PGlite 테스트 100% 통과.
+- **Phase 1-V (성능 & 장애 모니터링 체계 구축 - PR #42)**:
+  - **전역 에러 바운더리 (`src/app/error.tsx`)**: 런타임 오류 발생 시 학생회 친화적 복구 카드, 다시 시도(`reset()`), 세이프존 복구(`대시보드로 이동`), 오류 식별 코드(`error.digest`), 개발 모드 상세 스택 트레이스 제공.
+  - **루트 레이아웃 크래시 비상 복구 화면 (`src/app/global-error.tsx`)**: 자체 인라인 스타일 HTML/Body 내장 비상 복구 화면.
+  - **404 안내 카드 (`src/app/not-found.tsx`)**: 학생회 OS 테마의 직관적인 404 카드 및 대시보드/소통 피드 빠른 이동 버튼 제공.
+  - **페이지 전환 로딩 인디케이터 (`src/app/loading.tsx`)**: App Router 비동기 페이지 이동 시 깜빡임 없는 스켈레톤/스피너 전환.
+  - **빌드 번들 최적화 & 이미지 호스트 보안 허용 (`next.config.ts`)**: `optimizePackageImports: ["lucide-react"]` 번들 경량화, `images.remotePatterns`에 `*.supabase.co` 등록.
+- **Phase 1-W (학생회 자진 탈퇴 및 대표 권한 위임 - PR #43)**:
+  - **학생회 자진 탈퇴 서버 액션 (`leaveOrganization`)**: `organization_members`에서 본인 레코드 안전 삭제(DB RLS `org_members_delete` 정책 준수), 세션 쿠키(`nexus-has-org`) 초기화 후 `/onboarding?status=left_org`로 자동 이동하여 다른 학생회에 즉시 가입 신청 가능.
+  - **총학생회장(대표) 안전 방어**: 다른 구성원이 남아있을 경우 탈퇴 전 대표 권한 위임 필수 방어.
+  - **대표 권한 위임 서버 액션 (`transferPresidentRole`)**: 회장이 다른 관리자/부원에게 회장(PRESIDENT) 권한 위임 및 본인은 관리자(ADMIN)로 전환.
+  - **구성원 관리 UI 연동 (`LeaveOrgDialog`, `MemberItem`)**: 내 프로필 카드 옆 `[학생회 탈퇴]` 모달, 회장 전용 `[대표 위임]` 버튼 연동.
+  - **온보딩 탈퇴 알림 배너 (`src/app/onboarding/page.tsx`)**: 정상 탈퇴 안내 및 다른 학생회 가입 유도 배너 표출.
+- **Supabase**: `nexus-dev` / `wsqyubzskzrvxphlffyv` / Seoul 프로젝트. 총 16개 마이그레이션 적용 완료. 23개 테이블 RLS 보호 및 23개 DB 정책 테스트 100% 통과.
 
 ---
 
-## 다음 작업 로드맵
+## 향후 고도화 백로그 (Next Backlog)
 
-- [ ] **4단계**: 성능 & 장애 모니터링 (Next.js 빌드 번들 경량화, 에러 바운더리)
+- [ ] **멀티 조직 스위처 (Organization Switcher)**: 한 계정으로 여러 학생회(예: 학과 학생회 + 총학 TF) 동시 소속 및 상단 워크스페이스 전환 기능.
+- [ ] **업무 맥락형 실시간 스레드/댓글 (Contextual Threads)**: 결재서, 태스크, 회의록별 실시간 댓글/멘션(@) 소통 기능.
+- [ ] **카카오톡 웹훅 / 알림봇 연동**: 결재 승인 요청 및 긴급 태스크 발생 시 학생회 카톡방 봇 알림 전송.
+- [ ] **LLM 비용 최적화 & BYOK (Bring Your Own Key)**: 학생회 설정에서 자체 API 키 입력 지원 및 Gemini Flash 경량 모델 라우팅.
 
 ---
 
@@ -116,7 +131,8 @@ npm ci
 npm run lint          # ESLint 린트 검사 (0 warnings, 0 errors)
 npm run typecheck     # TypeScript strict 타입 검사
 npm run test:config   # Supabase 설정 안전성 검사
-npm run test:db       # PGlite 메모리 PostgreSQL RLS 정책 검사 (19개 테스트 PASS)
+npm run test:db       # PGlite 메모리 PostgreSQL RLS 정책 검사 (23개 테스트 PASS)
 npm run db:check      # 원격 Supabase 연결 및 RLS 격리 상태 검증
 npx next build --webpack  # 프로덕션 최적화 빌드
 ```
+
