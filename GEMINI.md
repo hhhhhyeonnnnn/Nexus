@@ -1,4 +1,4 @@
-# Nexus
+# All:in
 
 Shared project rules:
 

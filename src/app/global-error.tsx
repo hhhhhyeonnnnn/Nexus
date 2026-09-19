@@ -11,7 +11,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[Nexus Root Global Error]", error);
+    console.error("[All:in Root Global Error]", error);
   }, [error]);
 
   return (

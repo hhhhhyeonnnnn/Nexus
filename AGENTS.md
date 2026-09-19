@@ -1,7 +1,7 @@
-# Nexus Agent Guidelines
+# All:in Agent Guidelines
 
 ## Project
-- Nexus is a Student Council Operating System.
+- All:in is a Student Council Operating System.
 - Use Next.js App Router, TypeScript strict mode, Tailwind CSS, shadcn/ui and Lucide.
 - Do not introduce another backend framework without explicit approval.
 - The initial foundation is complete. Implement only the next domain or setup task the user authorizes.

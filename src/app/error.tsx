@@ -15,7 +15,7 @@ export default function ErrorBoundary({
 }) {
   useEffect(() => {
     // 에러 발생 시 콘솔 및 모니터링 로깅
-    console.error("[Nexus App Error]", error);
+    console.error("[All:in App Error]", error);
   }, [error]);
 
   return (

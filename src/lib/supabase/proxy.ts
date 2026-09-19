@@ -91,9 +91,9 @@ export async function updateSession(request: NextRequest) {
 
   // Authenticated: check org membership for redirect decisions.
   // When navigating within org pages (/dashboard, /projects, etc.), leverage
-  // the lightweight 'nexus-has-org' cookie flag to bypass repeated DB SELECTs.
+  // the lightweight 'all-in-has-org' cookie flag to bypass repeated DB SELECTs.
   const isBypassed = pathname.startsWith("/onboarding") || pathname.startsWith("/auth");
-  const orgCookie = isBypassed ? undefined : request.cookies.get("nexus-has-org")?.value;
+  const orgCookie = isBypassed ? undefined : request.cookies.get("all-in-has-org")?.value;
   let hasOrg: boolean;
 
   if (orgCookie === "1") {
@@ -110,7 +110,7 @@ export async function updateSession(request: NextRequest) {
       .maybeSingle();
 
     hasOrg = !!membership;
-    response.cookies.set("nexus-has-org", hasOrg ? "1" : "0", {
+    response.cookies.set("all-in-has-org", hasOrg ? "1" : "0", {
       path: "/",
       httpOnly: true,
       sameSite: "lax",

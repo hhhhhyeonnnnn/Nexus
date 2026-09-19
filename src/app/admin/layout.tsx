@@ -12,7 +12,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <header className="border-b border-border bg-background px-6 py-3">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="font-bold text-base text-foreground tracking-tight">Nexus</span>
+            <span className="font-bold text-base text-foreground tracking-tight">All:in</span>
             <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
               사이트 운영자
             </span>

@@ -114,9 +114,9 @@ export function Sidebar() {
   return (
     <div className="flex min-h-full flex-col gap-5 bg-sidebar px-4 pt-5 pb-5">
       {/* Workspace Brand Header */}
-      <Link href="/dashboard" className="flex items-center gap-3" aria-label="Nexus 대시보드">
+      <Link href="/dashboard" className="flex items-center gap-3" aria-label="All:in 대시보드">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-base font-bold text-primary-foreground shadow-xs">
-          N
+          A
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-1">
@@ -155,7 +155,7 @@ export function Sidebar() {
                 type="button"
                 onClick={() => window.dispatchEvent(new CustomEvent("open-assistant"))}
                 className="flex h-9.5 md:h-8.5 items-center gap-2.5 rounded-lg px-3 md:px-2.5 text-left text-xs font-medium text-foreground hover:bg-muted/60 transition-colors cursor-pointer mt-1"
-                aria-label="Nexus AI 어시스턴트 열기"
+                aria-label="All:in AI 어시스턴트 열기"
               >
                 <Icon size={16} className="text-primary shrink-0" aria-hidden="true" />
                 <span>{item.label}</span>
@@ -194,7 +194,7 @@ export function Sidebar() {
 
         <div className="flex items-center gap-2 px-1 text-[11px] text-muted-foreground">
           <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
-          <span>Nexus 학생회 OS 가동 중</span>
+          <span>All:in 학생회 OS 가동 중</span>
         </div>
       </div>
     </div>

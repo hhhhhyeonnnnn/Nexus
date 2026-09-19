@@ -25,7 +25,7 @@ export default function AppleIcon() {
           boxShadow: "inset 0 2px 10px rgba(255, 255, 255, 0.3)",
         }}
       >
-        N
+        A
       </div>
     ),
     {

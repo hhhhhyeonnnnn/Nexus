@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useTransition } from "react";
 import Link from "next/link";
+import { readBrandStorage } from "@/lib/utils/brand-storage";
 import {
   Megaphone,
   MessageSquareQuote,
@@ -103,17 +104,17 @@ export function PublicFeedClient({
   // Client-side voter ID generated from localStorage
   const [voterId] = useState<string>(() => {
     if (typeof window === "undefined") return "";
-    let vid = localStorage.getItem("nexus_voter_id");
+    let vid = readBrandStorage("voter_id");
     if (!vid) {
       vid = "voter_" + Math.random().toString(36).substring(2, 12);
-      localStorage.setItem("nexus_voter_id", vid);
+      localStorage.setItem("all-in_voter_id", vid);
     }
     return vid;
   });
 
   const [myVotes, setMyVotes] = useState<Record<string, string>>(() => {
     if (typeof window === "undefined") return {};
-    const savedVotes = localStorage.getItem("nexus_my_votes");
+    const savedVotes = readBrandStorage("my_votes");
     if (savedVotes) {
       try {
         return JSON.parse(savedVotes);
@@ -179,7 +180,7 @@ export function PublicFeedClient({
       } else {
         const updated = { ...myVotes, [pollId]: optionId };
         setMyVotes(updated);
-        localStorage.setItem("nexus_my_votes", JSON.stringify(updated));
+        localStorage.setItem("all-in_my_votes", JSON.stringify(updated));
       }
     });
   };
@@ -191,7 +192,7 @@ export function PublicFeedClient({
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground">
-              N
+              A
             </span>
             <div>
               <span className="block font-bold text-xs text-foreground">

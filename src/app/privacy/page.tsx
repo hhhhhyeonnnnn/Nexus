@@ -4,7 +4,7 @@ import { ArrowLeft, ShieldCheck, Lock } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "개인정보 처리방침",
-  description: "Nexus 학생회 통합 운영체제 개인정보 처리방침",
+  description: "All:in 학생회 통합 운영체제 개인정보 처리방침",
 };
 
 export default function PrivacyPage() {
@@ -31,10 +31,10 @@ export default function PrivacyPage() {
               <span>개인정보보호</span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              Nexus 개인정보 처리방침
+              All:in 개인정보 처리방침
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Nexus(이하 &quot;서비스&quot;)는 「개인정보 보호법」 제30조에 따라 정보주체의 개인정보를 보호하고
+              All:in(이하 &quot;서비스&quot;)는 「개인정보 보호법」 제30조에 따라 정보주체의 개인정보를 보호하고
               이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 하기 위하여 다음과 같이 개인정보 처리방침을 수립·공개합니다.
             </p>
           </div>
@@ -149,7 +149,7 @@ export default function PrivacyPage() {
             <section className="space-y-2">
               <h2 className="text-base font-bold text-foreground">제7조 (개인정보 보호책임자 및 연락처)</h2>
               <div className="p-4 rounded-xl bg-muted/60 border space-y-1 text-xs">
-                <p><strong className="text-foreground">개인정보 보호책임자:</strong> Nexus 개발 및 운영총괄</p>
+                <p><strong className="text-foreground">개인정보 보호책임자:</strong> All:in 개발 및 운영총괄</p>
                 <p><strong className="text-foreground">문의 및 침해 신고:</strong> privacy@nexus-campus.org</p>
                 <p><strong className="text-foreground">권익침해 구제 안내:</strong> 개인정보분쟁조정위원회 (1833-6972, kopico.go.kr) / KISA 개인정보침해신고센터 (118, privacy.kisa.or.kr)</p>
               </div>

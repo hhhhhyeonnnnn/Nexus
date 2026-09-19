@@ -1,5 +1,18 @@
 # Database · 초기 Migration
 
+## 2026-09-20 온보딩 변경
+
+- 로그인 후 대학명·학생회명(각 1~100자)을 입력하면 운영자 승인 없이 즉시 생성됩니다.
+- `createOrganization` Server Action이 사용자 세션으로 `create_organization(p_name, p_university_name)` RPC를 호출합니다.
+- RPC는 로그인·프로필·기존 소속을 확인하고 프로필 행 잠금으로 계정별 동시 생성을 직렬화합니다. 조직 생성과 본인의 PRESIDENT 등록은 하나의 트랜잭션입니다.
+- 이미 소속된 계정의 추가 생성과 익명 실행은 차단합니다. 일반 사용자의 직접 테이블 생성 권한은 확대하지 않습니다.
+- 과거 대기 중 생성 신청은 즉시 생성 성공 시 종료(rejected)하며, 새 UI에서는 생성 신청을 보내지 않습니다. 기존 배포본과의 호환을 위해 과거 신청 정책과 심사 코드는 유지합니다.
+- 기존 학생회 가입은 학생회 관리자 승인을 유지합니다. 아래의 생성 승인 설명은 이전 방식에 대한 기록입니다.
+- 마이그레이션: `20260920000000_self_service_organizations.sql`.
+- 적용 대상: 로컬 `.env.local`이 연결된 `brknzpcbabwobihxjseq` 프로젝트. 2026-09-20 두 마이그레이션 적용 및 일반 사용자 권한 RPC 검증 완료. 기존 문서의 다른 프로젝트 ID와 혼동하지 않습니다.
+- 테스트 조직 정리는 `20260920010000_remove_authorized_test_organization.sql`로 지정 UUID에만 적용하며 로그인 계정과 다른 조직은 보존합니다.
+
+
 파일: `supabase/migrations/20260909000000_initial_schema.sql`
 
 **`nexus-dev` 개발 DB에 적용 완료.** Supabase가 제공하는 `auth.users`, `auth.uid()`, `anon`, `authenticated`를 전제로 합니다. 조직별 SELECT만 허용하며 모든 일반 클라이언트 INSERT/UPDATE/DELETE는 닫혀 있습니다. 이 문서는 서비스의 CRUD 완성을 의미하지 않습니다.

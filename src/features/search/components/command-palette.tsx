@@ -41,7 +41,7 @@ const DEFAULT_PAGES: NavigationItem[] = [
   { id: "p-form", title: "행사·티켓 관리", subtitle: "부스/행사 신청 및 QR 티켓", url: "/forms", icon: Ticket },
   { id: "p-comm", title: "소통·피드", subtitle: "공지사항, 건의, 학생 투표", url: "/community", icon: Megaphone },
   { id: "p-memb", title: "구성원 및 조직도", subtitle: "부서 배정 및 회원 관리", url: "/members", icon: Users },
-  { id: "p-ai", title: "Nexus AI 어시스턴트", subtitle: "실시간 데이터 기반 질의응답", url: "#", icon: Sparkles, isAssistantAction: true },
+  { id: "p-ai", title: "All:in AI 어시스턴트", subtitle: "실시간 데이터 기반 질의응답", url: "#", icon: Sparkles, isAssistantAction: true },
 ];
 
 export function CommandPalette() {

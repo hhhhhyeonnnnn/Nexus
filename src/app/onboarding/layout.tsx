@@ -12,7 +12,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
       <header className="border-b border-border bg-background px-6 py-3">
         <div className="mx-auto flex max-w-4xl items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-base text-foreground tracking-tight">Nexus</span>
+            <span className="font-bold text-base text-foreground tracking-tight">All:in</span>
             <span className="text-xs text-muted-foreground">· 학생회 온보딩</span>
           </div>
           <form action={logout}>

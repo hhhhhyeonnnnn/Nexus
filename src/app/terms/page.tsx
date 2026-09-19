@@ -4,7 +4,7 @@ import { ArrowLeft, ShieldCheck, FileText } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "서비스 이용약관",
-  description: "Nexus 학생회 통합 운영체제 서비스 이용약관",
+  description: "All:in 학생회 통합 운영체제 서비스 이용약관",
 };
 
 export default function TermsPage() {
@@ -31,10 +31,10 @@ export default function TermsPage() {
               <span>이용약관</span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              Nexus 서비스 이용약관
+              All:in 서비스 이용약관
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              본 약관은 Nexus 학생회 통합 운영체제(이하 &quot;서비스&quot;)의 이용과 관련하여
+              본 약관은 All:in 학생회 통합 운영체제(이하 &quot;서비스&quot;)의 이용과 관련하여
               서비스 제공 주체와 이를 이용하는 학생회 및 회원의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.
             </p>
           </div>
@@ -44,7 +44,7 @@ export default function TermsPage() {
               <h2 className="text-base font-bold text-foreground">제1조 (목적)</h2>
               <p>
                 본 약관은 대학 학생 자치기구의 투명하고 체계적인 업무 인수인계 및 자치 행정을 지원하는
-                Nexus(이하 &quot;서비스&quot;)의 이용 조건 및 절차, 이용자와 서비스 간의 권리·의무 관계를 규정함을 목적으로 합니다.
+                All:in(이하 &quot;서비스&quot;)의 이용 조건 및 절차, 이용자와 서비스 간의 권리·의무 관계를 규정함을 목적으로 합니다.
               </p>
             </section>
 
@@ -52,7 +52,7 @@ export default function TermsPage() {
               <h2 className="text-base font-bold text-foreground">제2조 (용어의 정의)</h2>
               <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
                 <li>
-                  <strong className="text-foreground">&quot;서비스&quot;</strong>라 함은 단과대/총학생회 조직 관리, 프로젝트 및 일정 관리, 예결산 회계 관리, 전자결재, 축제/행사 티켓 신청 및 검표, 학생 소통 피드 등을 제공하는 Nexus 플랫폼을 의미합니다.
+                  <strong className="text-foreground">&quot;서비스&quot;</strong>라 함은 단과대/총학생회 조직 관리, 프로젝트 및 일정 관리, 예결산 회계 관리, 전자결재, 축제/행사 티켓 신청 및 검표, 학생 소통 피드 등을 제공하는 All:in 플랫폼을 의미합니다.
                 </li>
                 <li>
                   <strong className="text-foreground">&quot;학생회(기구)&quot;</strong>라 함은 대학 내 공식 인가된 총학생회, 단과대 학생회, 학과 학생회 및 특별자치기구 등 본 서비스에서 조직(Tenant)을 개설하여 관리하는 자치 주체를 의미합니다.
@@ -144,7 +144,7 @@ export default function TermsPage() {
           <div className="border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-4 text-emerald-600" />
-              <span>Nexus는 대학 학생 자치 규약 및 개인정보보호법 표준을 준수합니다.</span>
+              <span>All:in은 대학 학생 자치 규약 및 개인정보보호법 표준을 준수합니다.</span>
             </div>
             <div className="flex items-center gap-3">
               <Link href="/privacy" className="text-primary hover:underline font-semibold">

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserOrganization } from "@/features/projects/actions";
 import { getSupabaseConfig } from "@/lib/supabase/env";
 import {
-  askNexusAssistant,
+  askAllInAssistant,
   type AssistantAnswer,
   type AssistantChatMessage,
 } from "@/lib/ai/assistant";
@@ -31,7 +31,7 @@ export async function askAssistantAction(
   }
 
   const supabase = await createClient();
-  const res = await askNexusAssistant({
+  const res = await askAllInAssistant({
     supabase,
     organizationId: membership.organizationId,
     question: question.trim(),

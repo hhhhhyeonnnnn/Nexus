@@ -1203,7 +1203,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_organization: {
+        Args: { p_name: string; p_university_name: string }
+        Returns: string
+      }
     }
     Enums: {
       organization_role: "PRESIDENT" | "VICE_PRESIDENT" | "ADMIN" | "MEMBER"

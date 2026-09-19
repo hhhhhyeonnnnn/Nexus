@@ -7,7 +7,7 @@ import nextEnv from "@next/env";
 import { createClient } from "@supabase/supabase-js";
 import { requireSupabaseConfig } from "../src/lib/supabase/env.ts";
 
-// Intentionally restricted to Nexus's disposable development project.
+// Intentionally restricted to All:in's disposable development project.
 // Admin credentials are used only for temporary Auth users, never data assertions.
 const projectRef = "brknzpcbabwobihxjseq";
 nextEnv.loadEnvConfig(process.cwd());
@@ -49,7 +49,7 @@ let seeded = false;
 saveManifest();
 try {
   for (let i = 0; i < 2; i++) {
-    const email = `nexus-rls-${runId}-${i}@example.test`;
+    const email = `all-in-rls-${runId}-${i}@example.test`;
     const password = randomBytes(32).toString("base64url");
     const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
     assert.ok(!error && data.user, "임시 Auth 사용자 생성 실패");
@@ -63,7 +63,7 @@ try {
     clients.push(client);
     const org = organizations[i];
     const own = rows[i];
-    own.organizations = { id: org, name: `RLS test ${runId}`, university_name: "Nexus test" };
+    own.organizations = { id: org, name: `RLS test ${runId}`, university_name: "All:in test" };
     own.profiles = { id: users[i], name: "RLS test", email };
     own.organization_members = { organization_id: org, user_id: users[i], role: "MEMBER" };
     for (const table of tables.slice(3)) own[table] = { id: randomUUID(), organization_id: org };
