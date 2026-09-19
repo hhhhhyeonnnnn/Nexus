@@ -15,58 +15,36 @@ export type ActionState = {
 };
 
 // ---------------------------------------------------------------------------
-// 1. Organization Creation Requests (By regular user)
+// 1. Self-service Organization Creation
 // ---------------------------------------------------------------------------
 
-export async function requestCreateOrganization(
+export async function createOrganization(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
   const orgName = formData.get("org_name");
   const universityName = formData.get("university_name");
-  const reason = (formData.get("reason") as string) || "";
-
-  if (typeof orgName !== "string" || !orgName.trim()) {
-    return { error: "학생회(조직) 이름을 입력해 주세요." };
+  if (typeof orgName !== "string" || typeof universityName !== "string" ||
+      !orgName.trim() || !universityName.trim() ||
+      orgName.trim().length > 100 || universityName.trim().length > 100) {
+    return { error: "대학교와 학생회 이름은 1~100자로 입력해 주세요." };
   }
-  if (typeof universityName !== "string" || !universityName.trim()) {
-    return { error: "대학교 이름을 입력해 주세요." };
-  }
-
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "로그인이 필요합니다." };
 
-  if (!user) {
-    return { error: "로그인이 필요합니다." };
-  }
-
-  // Check if user already has an active pending creation request
-  const { data: existing } = await supabase
-    .from("organization_creation_requests")
-    .select("id")
-    .eq("requester_id", user.id)
-    .eq("status", "pending")
-    .maybeSingle();
-
-  if (existing) {
-    return { error: "이미 심사 중인 조직 생성 신청이 있습니다." };
-  }
-
-  const { error } = await supabase.from("organization_creation_requests").insert({
-    requester_id: user.id,
-    org_name: orgName.trim(),
-    university_name: universityName.trim(),
-    reason: reason.trim(),
-    status: "pending",
+  const { error } = await supabase.rpc("create_organization", {
+    p_name: orgName.trim(),
+    p_university_name: universityName.trim(),
   });
-
   if (error) {
-    return { error: "조직 생성 신청 중 오류가 발생했습니다. 다시 시도해 주세요." };
+    return { error: error.code === "23505"
+      ? "이미 소속된 학생회가 있습니다. 대시보드로 이동해 주세요."
+      : "학생회 생성에 실패했습니다. 다시 로그인하거나 잠시 후 재시도해 주세요." };
   }
-
-  redirect("/onboarding?status=creation_requested");
+  (await cookies()).delete("all-in-has-org");
+  revalidatePath("/", "layout");
+  redirect("/dashboard");
 }
 
 // ---------------------------------------------------------------------------
@@ -477,9 +455,9 @@ export async function leaveOrganization(): Promise<ActionState> {
     return { error: "학생회 탈퇴 처리에 실패했습니다: " + deleteError.message };
   }
 
-  // 4. Reset nexus-has-org cookie
+  // 4. Reset all-in-has-org cookie
   const cookieStore = await cookies();
-  cookieStore.delete("nexus-has-org");
+  cookieStore.delete("all-in-has-org");
 
   // 5. Revalidate and redirect to onboarding
   revalidatePath("/", "layout");

@@ -150,7 +150,7 @@ export function PrivacyConsentModal({
               <div className="space-y-2">
                 <h4 className="font-bold text-foreground">1. 서비스의 목적</h4>
                 <p className="text-muted-foreground">
-                  Nexus는 대학 학생 자치기구의 공공성과 자치 행정의 연속성을 위해 개발된 통합 운영 시스템입니다.
+                  All:in은 대학 학생 자치기구의 공공성과 자치 행정의 연속성을 위해 개발된 통합 운영 시스템입니다.
                 </p>
               </div>
 

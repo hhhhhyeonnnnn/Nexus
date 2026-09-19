@@ -1,5 +1,6 @@
 "use client";
 
+import { readBrandStorage } from "@/lib/utils/brand-storage";
 import {
   createContext,
   useContext,
@@ -50,7 +51,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       if (!mounted) return;
       if (data) {
         setMembership(data);
-        const saved = typeof window !== "undefined" ? localStorage.getItem("nexus_preview_role") : null;
+        const saved = typeof window !== "undefined" ? readBrandStorage("preview_role") : null;
         if (saved && (saved === "EXECUTIVE" || saved === "HEAD" || saved === "MEMBER")) {
           setActiveRoleState(saved as UserRoleType);
         } else {
@@ -67,18 +68,18 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    window.addEventListener("nexus-role-change", handleRoleEvent);
+    window.addEventListener("all-in-role-change", handleRoleEvent);
     return () => {
       mounted = false;
-      window.removeEventListener("nexus-role-change", handleRoleEvent);
+      window.removeEventListener("all-in-role-change", handleRoleEvent);
     };
   }, []);
 
   const setActiveRole = (role: UserRoleType) => {
     setActiveRoleState(role);
     if (typeof window !== "undefined") {
-      localStorage.setItem("nexus_preview_role", role);
-      window.dispatchEvent(new CustomEvent("nexus-role-change", { detail: role }));
+      localStorage.setItem("all-in_preview_role", role);
+      window.dispatchEvent(new CustomEvent("all-in-role-change", { detail: role }));
     }
   };
 

@@ -26,7 +26,7 @@ export default async function LoginPage({
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-foreground">Nexus</h1>
+        <h1 className="text-2xl font-bold text-foreground">All:in</h1>
         <p className="mt-1 text-sm text-muted-foreground">학생회 운영 플랫폼에 로그인하세요</p>
       </div>
 
@@ -56,7 +56,7 @@ export default async function LoginPage({
 
       {/* Footer Legal Notice */}
       <div className="text-center text-[11px] sm:text-xs text-muted-foreground">
-        <span>계속 진행하면 Nexus의 </span>
+        <span>계속 진행하면 All:in의 </span>
         <Link href="/terms" className="text-primary hover:underline font-semibold">
           이용약관
         </Link>

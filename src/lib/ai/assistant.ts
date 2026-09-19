@@ -263,7 +263,7 @@ function generateLocalFallbackAnswer(question: string, ctx: OrganizationContext)
 
   // Default general response
   return {
-    answer: `안녕하세요! **${ctx.organizationName}**의 전담 AI 어시스턴트 Nexus AI입니다.\n\n현재 우리 학생회 운영 현황:\n• 프로젝트: ${ctx.projects.length}개 진행 중\n• 등록 업무: ${ctx.tasks.length}개\n• 결재 문서: 대기 ${ctx.approvals.filter((a) => a.status === "PENDING").length}건\n• 회계 잔액: ${ctx.budget.balance.toLocaleString("ko-KR")}원\n\n궁금한 예산, 업무, 회의 결정사항, 결재 서류 등에 대해 무엇이든 질문해 주세요!`,
+    answer: `안녕하세요! **${ctx.organizationName}**의 전담 AI 어시스턴트 All:in AI입니다.\n\n현재 우리 학생회 운영 현황:\n• 프로젝트: ${ctx.projects.length}개 진행 중\n• 등록 업무: ${ctx.tasks.length}개\n• 결재 문서: 대기 ${ctx.approvals.filter((a) => a.status === "PENDING").length}건\n• 회계 잔액: ${ctx.budget.balance.toLocaleString("ko-KR")}원\n\n궁금한 예산, 업무, 회의 결정사항, 결재 서류 등에 대해 무엇이든 질문해 주세요!`,
     keyPoints: [
       `학생회: ${ctx.organizationName}`,
       `진행 프로젝트: ${ctx.projects.length}개`,
@@ -277,7 +277,7 @@ function generateLocalFallbackAnswer(question: string, ctx: OrganizationContext)
   };
 }
 
-export async function askNexusAssistant({
+export async function askAllInAssistant({
   supabase,
   organizationId,
   question,
@@ -292,7 +292,7 @@ export async function askNexusAssistant({
       return { success: true, data: fallback };
     }
 
-    const systemPrompt = `당신은 대학 학생회 전용 운영체제인 'Nexus'의 지능형 총괄 비서(Nexus AI)입니다.
+    const systemPrompt = `당신은 대학 학생회 전용 운영체제인 'All:in'의 지능형 총괄 비서(All:in AI)입니다.
 학생회 구성원들이 예산, 업무 현황, 회의 결정사항, 프로젝트 진척도, 결재 대기 서류 등을 질문했을 때, 아래에 제공된 실시간 학생회 운영 데이터를 기반으로 정확하고 친절하며 신뢰할 수 있게 답변하세요.
 
 [원칙]

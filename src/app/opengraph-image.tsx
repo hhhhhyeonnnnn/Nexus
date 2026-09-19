@@ -54,10 +54,10 @@ export default function OpenGraphImage() {
               boxShadow: "0 10px 25px rgba(91, 91, 214, 0.4)",
             }}
           >
-            N
+            A
           </div>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <span style={{ fontSize: "28px", fontWeight: 800, letterSpacing: "-0.5px" }}>Nexus</span>
+            <span style={{ fontSize: "28px", fontWeight: 800, letterSpacing: "-0.5px" }}>All:in</span>
             <span style={{ fontSize: "16px", color: "#a5b4fc", fontWeight: 500 }}>Student Council OS</span>
           </div>
         </div>
@@ -155,7 +155,7 @@ export default function OpenGraphImage() {
             color: "#64748b",
           }}
         >
-          <span>https://nexus-kappa-two-10.vercel.app</span>
+          <span>All:in · Student Council OS</span>
           <span>대학 학생 자치기구 공식 운영 플랫폼</span>
         </div>
       </div>

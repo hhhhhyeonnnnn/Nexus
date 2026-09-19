@@ -37,7 +37,7 @@ export function AssistantModal() {
   const [messages, setMessages] = useState<MessageItem[]>([
     {
       role: "assistant",
-      text: "안녕하세요! 학생회 전용 인수인계 및 운영 비서 **Nexus AI**입니다.\n\n예산 잔액, 업무 진행 현황, 회의록 의결 사항, 결재 대기 서류 등 궁금한 사항을 자유롭게 질문해 보세요.",
+      text: "안녕하세요! 학생회 전용 인수인계 및 운영 비서 **All:in AI**입니다.\n\n예산 잔액, 업무 진행 현황, 회의록 의결 사항, 결재 대기 서류 등 궁금한 사항을 자유롭게 질문해 보세요.",
       suggestedActions: [
         { label: "대시보드", href: "/dashboard" },
         { label: "회계 장부", href: "/finance" },
@@ -128,7 +128,7 @@ export function AssistantModal() {
                 </div>
                 <div>
                   <h2 id="assistant-modal-title" className="text-base font-bold text-foreground">
-                    Nexus AI 학생회 어시스턴트
+                    All:in AI 학생회 어시스턴트
                   </h2>
                   <p className="text-xs text-muted-foreground">
                     실시간 학생회 데이터 기반 지능형 인수인계 & 운영 비서

@@ -37,6 +37,8 @@ before(async () => {
   await db.exec(await readFile(new URL("../supabase/migrations/20260911150000_supabase_realtime_setup.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/20260911160000_storage_setup.sql", import.meta.url), "utf8"));
 
+  await db.exec(await readFile(new URL("../supabase/migrations/20260920000000_self_service_organizations.sql", import.meta.url), "utf8"));
+
   for (const n of [1, 2]) {
     await db.exec(`
       insert into auth.users values ('${id(n)}');
@@ -742,3 +744,81 @@ test("notifications are isolated to recipient user, and user can mark them as re
   }
 });
 
+
+test("self-service creation assigns the authenticated creator and preserves tenant isolation", async () => {
+  await db.exec(`insert into auth.users values ('${id(200)}');
+    insert into public.profiles(id,name,email) values ('${id(200)}','Creator','creator@example.test');
+    insert into public.organization_creation_requests(requester_id,org_name,university_name)
+    values ('${id(200)}','Old request','University');
+    set role authenticated; set request.jwt.claim.sub = '${id(200)}';`);
+  let organizationId;
+  try {
+    const { rows } = await db.query("select public.create_organization('  New council  ', ' University ') as id");
+    organizationId = rows[0].id;
+    const membership = await db.query("select organization_id,user_id,role from public.organization_members");
+    assert.deepEqual(membership.rows, [{ organization_id: organizationId, user_id: id(200), role: 'PRESIDENT' }]);
+    const organization = await db.query("select name,university_name from public.organizations where id=$1", [organizationId]);
+    assert.deepEqual(organization.rows, [{name:'New council',university_name:'University'}]);
+    const requests = await db.query("select status from public.organization_creation_requests");
+    assert.equal(requests.rows[0].status, 'rejected');
+    await assert.rejects(db.query("select public.create_organization('Duplicate','University')"), /이미 소속/);
+    await assert.rejects(db.query("insert into public.organizations(name,university_name) values ('Bypass','University')"), /row-level security/);
+    await db.exec(`set request.jwt.claim.sub = '${id(2)}'`);
+    const other = await db.query("select * from public.organization_members where organization_id=$1", [organizationId]);
+    assert.equal(other.rows.length, 0);
+  } finally {
+    await db.exec('reset role');
+    await db.query('delete from public.organization_members where organization_id=$1',[organizationId]);
+    await db.query('delete from public.organizations where id=$1',[organizationId]);
+    await db.exec(`delete from auth.users where id='${id(200)}'`);
+  }
+});
+
+test("self-service creation rejects anonymous, missing profiles, invalid inputs and rolls back partial creation", async () => {
+  await db.exec('set role anon');
+  try { await assert.rejects(db.query("select public.create_organization('Council','University')"), /permission denied/); }
+  finally { await db.exec('reset role'); }
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${id(201)}'`);
+  try {
+    await assert.rejects(db.query("select public.create_organization('Council','University')"), /프로필/);
+    for (const name of ['', '   ', null, 'x'.repeat(101)]) {
+      await assert.rejects(db.query('select public.create_organization($1,$2)',[name,'University']), /1~100/);
+      await assert.rejects(db.query('select public.create_organization($1,$2)',['Council',name]), /1~100/);
+    }
+    await db.exec("set request.jwt.claim.sub = ''");
+    await assert.rejects(db.query("select public.create_organization('Council','University')"), /로그인/);
+  } finally { await db.exec('reset role'); }
+  await db.exec(`insert into auth.users values ('${id(201)}');
+    insert into public.profiles(id,name,email) values ('${id(201)}','Creator','creator2@example.test');
+    create function public.test_reject_president() returns trigger language plpgsql as $$
+    begin raise exception 'forced membership failure'; end $$;
+    create trigger test_reject_president before insert on public.organization_members
+      for each row execute function public.test_reject_president();
+    set role authenticated; set request.jwt.claim.sub = '${id(201)}';`);
+  try {
+    await assert.rejects(db.query("select public.create_organization('Rollback council','University')"), /forced membership failure/);
+    const {rows} = await db.query("select id from public.organizations where name='Rollback council'");
+    assert.equal(rows.length,0);
+  } finally {
+    await db.exec(`reset role; drop trigger test_reject_president on public.organization_members;
+      drop function public.test_reject_president(); delete from auth.users where id='${id(201)}';`);
+  }
+});
+
+test("authorized cleanup deletes only its exact test organization and retains accounts/other tenants", async () => {
+  const target = 'a57aaf3e-8bd6-4487-b027-6129c38fec40';
+  const migration = await readFile(new URL('../supabase/migrations/20260920010000_remove_authorized_test_organization.sql', import.meta.url),'utf8');
+  await db.exec(`insert into public.organizations(id,name,university_name) values ('${target}','드럼','Test');
+    insert into public.organization_members(organization_id,user_id) values ('${target}','${id(2)}');
+    insert into public.projects(id,organization_id,name) values ('${id(220)}','${target}','Test project');
+    insert into public.tasks(organization_id,project_id,assignee_id,title) values ('${target}','${id(220)}','${id(2)}','Test task');
+    insert into public.organization_creation_requests(id,requester_id,org_name,university_name)
+      values ('06490a77-b13d-44ad-81de-33f5f6c032e1','${id(2)}','드럼','Test');`);
+  const before = await db.query('select id from public.organizations where id<>$1 order by id',[target]);
+  await db.exec(migration);
+  await db.exec(migration); // Safe to replay if target is already gone.
+  const after = await db.query('select id from public.organizations order by id');
+  assert.deepEqual(after.rows,before.rows);
+  assert.equal((await db.query('select id from public.profiles where id=$1',[id(2)])).rows.length,1);
+  assert.equal((await db.query('select id from public.tasks where organization_id=$1',[target])).rows.length,0);
+});

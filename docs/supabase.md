@@ -1,6 +1,6 @@
 # Supabase 개발 환경
 
-## Nexus 개발 프로젝트
+## All:in 개발 프로젝트
 
 - 프로젝트: `nexus-dev` (개인 Free 조직)
 - 리전: Seoul / `ap-northeast-2`

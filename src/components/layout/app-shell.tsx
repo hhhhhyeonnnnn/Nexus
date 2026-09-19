@@ -142,13 +142,13 @@ export function AppShell({ children }: { children: ReactNode }) {
               <AssistantTrigger
                 variant="outline"
                 size="sm"
-                label="Nexus AI"
+                label="All:in AI"
                 className="h-8 gap-1.5 text-xs font-medium border-primary/30 hover:border-primary hover:bg-primary/5 text-primary"
               />
               <NotificationBell />
               <div className="hidden h-4 w-px bg-border sm:block" />
               <span className="hidden text-xs text-muted-foreground sm:inline-block">
-                Nexus · 학생회 OS
+                All:in · 학생회 OS
               </span>
             </div>
           </header>

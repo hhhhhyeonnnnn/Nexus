@@ -130,7 +130,7 @@ export default async function OpenGraphImage(props: {
           </div>
         </div>
 
-        {/* Bottom bar: Nexus branding */}
+        {/* Bottom bar: All:in branding */}
         <div
           style={{
             display: "flex",
@@ -155,10 +155,10 @@ export default async function OpenGraphImage(props: {
                 color: "#ffffff",
               }}
             >
-              N
+              A
             </div>
             <span style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.5px" }}>
-              Nexus 온라인 접수 시스템
+              All:in 온라인 접수 시스템
             </span>
           </div>
 

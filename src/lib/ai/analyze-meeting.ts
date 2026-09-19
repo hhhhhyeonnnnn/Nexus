@@ -39,7 +39,7 @@ export type AnalyzeMeetingResponse =
   | { success: true; data: MeetingAnalysisResult; error?: never }
   | { success: false; error: string; data?: never };
 
-const SYSTEM_PROMPT = `당신은 대학 학생회 전용 운영체제인 'Nexus'의 AI 회의록 분석 비서입니다.
+const SYSTEM_PROMPT = `당신은 대학 학생회 전용 운영체제인 'All:in'의 AI 회의록 분석 비서입니다.
 제공된 학생회 회의록의 제목, 참석자, 본문 내용을 엄밀하게 분석하여 JSON 객체로 반환하세요.
 
 반드시 지켜야 할 원칙:

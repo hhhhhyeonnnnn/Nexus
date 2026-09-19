@@ -1,8 +1,16 @@
 # Architecture
 
+## 2026-09-20 온보딩 변경
+
+로그인한 사용자는 운영자 승인 없이 학생회를 즉시 만들고 회장이 됩니다. 기존 학생회 가입 승인은 유지합니다. 생성과 대표 등록은 DB 트랜잭션으로 처리하며 중복 생성과 익명 호출을 차단합니다. 이전 생성 신청 방식에 대한 설명은 과거 기록입니다.
+
+관련 RPC·마이그레이션·정리 범위는 [데이터베이스 문서](database.md)를 참고하세요.
+
+
+
 ## 제품 경계
 
-Nexus는 별도 백엔드 서버 없이 Next.js에서 UI, Server Actions 및 Route Handlers를 제공합니다. Supabase가 데이터와 인증을 담당하며 OpenAI 요청은 Next.js 서버에서만 실행할 예정입니다. Dashboard는 데이터 미연결 Shell이며 Supabase 설정 시 Proxy가 사용자 세션을 갱신합니다.
+All:in은 별도 백엔드 서버 없이 Next.js에서 UI, Server Actions 및 Route Handlers를 제공합니다. Supabase가 데이터와 인증을 담당하며 OpenAI 요청은 Next.js 서버에서만 실행할 예정입니다. Dashboard는 데이터 미연결 Shell이며 Supabase 설정 시 Proxy가 사용자 세션을 갱신합니다.
 
 ```text
 Browser → Next.js App Router

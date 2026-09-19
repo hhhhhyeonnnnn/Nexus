@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Nexus 학생회 통합 운영체제",
-    short_name: "Nexus",
+    name: "All:in 학생회 통합 운영체제",
+    short_name: "All:in",
     description: "학생회의 업무와 기억을 다음 기수까지 이어주는 통합 운영 플랫폼",
     start_url: "/dashboard",
     scope: "/",

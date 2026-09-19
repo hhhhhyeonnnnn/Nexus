@@ -113,7 +113,7 @@ export function ExecutiveControlTowerView({
             <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
               회장단 총괄 관제탑
             </span>
-            <span className="text-xs text-muted-foreground">Nexus Control Tower</span>
+            <span className="text-xs text-muted-foreground">All:in Control Tower</span>
           </div>
           <h1 className="text-2xl font-bold text-foreground">학생회의 다음을 연결하는 공간</h1>
           <p className="text-sm text-muted-foreground">

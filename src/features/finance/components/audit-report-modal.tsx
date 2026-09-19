@@ -415,7 +415,7 @@ export function AuditReportModal({ data }: AuditReportModalProps) {
               {/* 6. Signatures and Stamps Block (공식 감사 직인 서명란) */}
               <div className="pt-6 border-t-2 border-black space-y-6">
                 <p className="text-center text-xs text-neutral-800 leading-relaxed">
-                  본 보고서는 Nexus 학생회 통합 운영 시스템을 통해 작성되었으며, <br />
+                  본 보고서는 All:in 학생회 통합 운영 시스템을 통해 작성되었으며, <br />
                   학생회비 및 사업비 집행 원장의 모든 내역과 증빙 자료가 사실과 일치함을 확인하고 서명 날인합니다.
                 </p>
 

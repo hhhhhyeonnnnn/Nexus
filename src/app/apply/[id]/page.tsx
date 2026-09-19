@@ -14,7 +14,7 @@ export async function generateMetadata(props: {
 
   if (!form) {
     return {
-      title: "신청 폼 | Nexus",
+      title: "신청 폼 | All:in",
       description: "학생회 행사 및 축제 신청",
     };
   }
@@ -40,7 +40,7 @@ export async function generateMetadata(props: {
       title,
       description,
       type: "website",
-      siteName: `${orgName} · Nexus`,
+      siteName: `${orgName} · All:in`,
       locale: "ko_KR",
     },
     twitter: {
@@ -91,14 +91,14 @@ export default async function PublicApplyPage(props: {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground">
-              N
+              A
             </span>
             <div>
               <span className="block font-bold text-xs text-foreground">
                 {org?.university_name} {org?.name}
               </span>
               <span className="block text-[10px] text-muted-foreground">
-                Nexus 학생회 온라인 접수 시스템
+                All:in 학생회 온라인 접수 시스템
               </span>
             </div>
           </div>
@@ -130,7 +130,7 @@ export default async function PublicApplyPage(props: {
 
       {/* Footer */}
       <footer className="border-t py-6 text-center text-xs text-muted-foreground bg-card">
-        <p>Powered by Nexus · 학생회 통합 운영 시스템</p>
+        <p>Powered by All:in · 학생회 통합 운영 시스템</p>
       </footer>
     </div>
   );

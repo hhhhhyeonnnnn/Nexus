@@ -27,7 +27,7 @@ export async function generateMetadata(props: {
       title,
       description,
       type: "website",
-      siteName: `${orgName} · Nexus`,
+      siteName: `${orgName} · All:in`,
       locale: "ko_KR",
     },
     twitter: {

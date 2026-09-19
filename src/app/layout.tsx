@@ -8,10 +8,10 @@ const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://nexus-kappa-two-10.v
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: { default: "Nexus · 학생회 OS", template: "%s | Nexus" },
+  title: { default: "All:in · 학생회 OS", template: "%s | All:in" },
   description: "학생회의 업무와 기억을 다음 기수까지 이어주는 통합 운영 플랫폼",
-  applicationName: "Nexus",
-  authors: [{ name: "Nexus Team" }],
+  applicationName: "All:in",
+  authors: [{ name: "All:in Team" }],
   generator: "Next.js",
   keywords: [
     "학생회",
@@ -21,27 +21,27 @@ export const metadata: Metadata = {
     "티켓발권",
     "예산결산",
     "전자결재",
-    "Nexus",
+    "All:in",
   ],
-  creator: "Nexus",
-  publisher: "Nexus",
+  creator: "All:in",
+  publisher: "All:in",
   openGraph: {
     type: "website",
     locale: "ko_KR",
     url: siteUrl,
-    siteName: "Nexus 학생회 OS",
-    title: "Nexus · 학생회 OS",
+    siteName: "All:in 학생회 OS",
+    title: "All:in · 학생회 OS",
     description: "학생회의 업무와 기억을 다음 기수까지 이어주는 통합 운영 플랫폼",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Nexus · 학생회 OS",
+    title: "All:in · 학생회 OS",
     description: "학생회의 업무와 기억을 다음 기수까지 이어주는 통합 운영 플랫폼",
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Nexus",
+    title: "All:in",
   },
   formatDetection: {
     telephone: false,

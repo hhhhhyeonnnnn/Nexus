@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
       });
 
       if (user) {
-        response.cookies.set("nexus-has-org", destination !== "/onboarding" ? "1" : "0", {
+        response.cookies.set("all-in-has-org", destination !== "/onboarding" ? "1" : "0", {
           path: "/",
           httpOnly: true,
           sameSite: "lax",

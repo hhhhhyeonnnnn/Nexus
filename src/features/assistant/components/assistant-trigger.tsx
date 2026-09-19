@@ -13,7 +13,7 @@ interface AssistantTriggerProps
 }
 
 export function AssistantTrigger({
-  label = "Nexus AI",
+  label = "All:in AI",
   showIcon = true,
   className,
   variant = "ghost",

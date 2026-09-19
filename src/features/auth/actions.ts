@@ -114,7 +114,7 @@ export async function logout(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
   const cookieStore = await cookies();
-  cookieStore.delete("nexus-has-org");
+  cookieStore.delete("all-in-has-org");
   redirect("/login");
 }
 

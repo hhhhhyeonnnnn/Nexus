@@ -15,7 +15,7 @@ export default async function OnboardingPage({
   searchParams: Promise<{ status?: string; error?: string }>;
 }) {
   const params = await searchParams;
-  const { creationRequests, joinRequests, userId } = await getMyRequests();
+  const { joinRequests, userId } = await getMyRequests();
   const isSiteAdmin = await isCurrentUserSiteAdmin();
 
   return (
@@ -34,12 +34,6 @@ export default async function OnboardingPage({
         </div>
       )}
 
-      {params.status === "creation_requested" && (
-        <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4 text-xs text-emerald-800">
-          조직 생성 신청이 성공적으로 접수되었습니다. 사이트 운영자의 승인 후 대시보드를 이용하실 수 있습니다.
-        </div>
-      )}
-
       {params.status === "join_requested" && (
         <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4 text-xs text-emerald-800">
           가입 신청이 성공적으로 전달되었습니다. 학생회 관리자의 승인 후 대시보드를 이용하실 수 있습니다.
@@ -54,7 +48,7 @@ export default async function OnboardingPage({
 
       {/* Existing application status */}
       <OnboardingStatus
-        creationRequests={creationRequests}
+        creationRequests={[]}
         joinRequests={joinRequests}
         userId={userId}
       />
@@ -68,11 +62,11 @@ export default async function OnboardingPage({
             </div>
             <h3 className="mt-3 font-semibold text-foreground">새 학생회 생성</h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              우리 학교에 아직 Nexus 학생회가 없다면 조직 생성을 신청하세요. 승인 시 총학생회장(대표) 권한이 부여됩니다.
+              운영자 승인 없이 학생회를 바로 만드세요. 생성한 계정에 총학생회장(대표) 권한이 부여됩니다.
             </p>
           </div>
           <Button asChild className="mt-5 w-full">
-            <a href="/onboarding/create">생성 신청하기</a>
+            <a href="/onboarding/create">학생회 만들기</a>
           </Button>
         </div>
 
